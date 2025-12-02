@@ -1,27 +1,27 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Task, SimulationStep } from '../types';
 import CodeEditor from './CodeEditor';
 import { runSimulation } from '../services/mpiSimulator';
 import { Play, RotateCcw, CheckCircle, BookOpen, Monitor, Lightbulb, Terminal } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 
 interface TaskWorkspaceProps {
   task: Task;
 }
 
 const TaskWorkspace: React.FC<TaskWorkspaceProps> = ({ task }) => {
-  const [code, setCode] = useState(task.solutionCode); // Изначально показываем решение
+  const [code, setCode] = useState(task.solutionCode);
   const [logs, setLogs] = useState<SimulationStep[]>([]);
   const [isRunning, setIsRunning] = useState(false);
   const [activeTab, setActiveTab] = useState<'desc' | 'theory'>('desc');
   
-  // Состояния для интерактивного ввода
   const [isWaitingForInput, setIsWaitingForInput] = useState(false);
   const [inputPrompt, setInputPrompt] = useState('');
   const [inputValue, setInputValue] = useState('');
   const inputResolverRef = useRef<((value: string) => void) | null>(null);
 
   useEffect(() => {
-    // При смене задачи сбрасываем состояние и ставим код решения
     setCode(task.solutionCode);
     setLogs([]);
     setIsRunning(false);
@@ -32,9 +32,7 @@ const TaskWorkspace: React.FC<TaskWorkspaceProps> = ({ task }) => {
   const handleInputSubmit = (e?: React.FormEvent) => {
     e?.preventDefault();
     if (inputResolverRef.current) {
-      // Добавляем лог с введенным значением, чтобы было видно в истории
       setLogs(prev => [...prev, { rank: -1, message: `${inputPrompt} ${inputValue}`, type: 'info' }]);
-      
       inputResolverRef.current(inputValue);
       inputResolverRef.current = null;
       setIsWaitingForInput(false);
@@ -48,7 +46,6 @@ const TaskWorkspace: React.FC<TaskWorkspaceProps> = ({ task }) => {
     setIsRunning(true);
     setLogs([]);
     
-    // Функция обратного вызова для запроса ввода
     const requestInput = (prompt: string): Promise<string> => {
       return new Promise((resolve) => {
         setInputPrompt(prompt);
@@ -63,7 +60,7 @@ const TaskWorkspace: React.FC<TaskWorkspaceProps> = ({ task }) => {
       }, requestInput);
     } catch (e) {
       console.error(e);
-      setLogs(prev => [...prev, { rank: -1, message: "Ошибка выполнения симуляции", type: 'error' }]);
+      setLogs(prev => [...prev, { rank: -1, message: "Ошибка", type: 'error' }]);
     } finally {
       setIsRunning(false);
       setIsWaitingForInput(false);
@@ -71,7 +68,7 @@ const TaskWorkspace: React.FC<TaskWorkspaceProps> = ({ task }) => {
   };
 
   const handleReset = () => {
-    setCode(task.solutionCode); // Сброс на решение
+    setCode(task.solutionCode);
     setLogs([]);
     setIsRunning(false);
     setIsWaitingForInput(false);
@@ -79,9 +76,7 @@ const TaskWorkspace: React.FC<TaskWorkspaceProps> = ({ task }) => {
 
   return (
     <div className="flex h-full flex-col lg:flex-row bg-gray-100 overflow-hidden">
-      {/* LEFT PANEL: INFO */}
       <div className="w-full lg:w-5/12 flex flex-col border-r border-gray-200 bg-white">
-        {/* Tabs */}
         <div className="flex border-b border-gray-200">
           <button
             onClick={() => setActiveTab('desc')}
@@ -90,7 +85,7 @@ const TaskWorkspace: React.FC<TaskWorkspaceProps> = ({ task }) => {
             }`}
           >
             <BookOpen size={16} />
-            Условие задачи
+            Задача
           </button>
           <button
             onClick={() => setActiveTab('theory')}
@@ -103,114 +98,83 @@ const TaskWorkspace: React.FC<TaskWorkspaceProps> = ({ task }) => {
           </button>
         </div>
 
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6 prose prose-slate max-w-none">
+        <div className="flex-1 overflow-y-auto p-6 prose prose-slate prose-sm max-w-none">
           {activeTab === 'desc' ? (
             <div>
-              <h2 className="text-2xl font-bold text-gray-800 mb-4">{task.title}</h2>
-              <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 text-sm text-yellow-800 flex items-start gap-3">
-                 <Lightbulb size={20} className="mt-0.5 flex-shrink-0" />
-                 <div>
-                    <strong>Требуемое кол-во процессов:</strong> {task.processes} (Вариант 17)
-                 </div>
+              <h2 className="text-xl font-bold text-gray-800 mb-2 mt-0">{task.title}</h2>
+              <div className="bg-yellow-50 border-l-4 border-yellow-400 p-3 mb-4 text-yellow-800 flex items-center gap-3 not-prose">
+                 <Lightbulb size={18} />
+                 <span className="font-medium">Процессов: {task.processes}</span>
               </div>
-              <p className="text-gray-700 mb-6 whitespace-pre-wrap">{task.description}</p>
-              
-              <h3 className="font-bold text-gray-800 mt-6 mb-2">Задачи:</h3>
-              <ul className="list-disc pl-5 space-y-1 text-gray-600">
-                <li>Инициализировать среду MPI.</li>
-                <li>Реализовать логику в зависимости от ранга процесса.</li>
-                <li>Обеспечить корректный вывод данных.</li>
-              </ul>
+              <p className="text-gray-700 whitespace-pre-wrap">{task.description}</p>
             </div>
           ) : (
             <div>
-              <h2 className="text-xl font-bold text-gray-800 mb-4">Теоретическая справка</h2>
-              <div className="whitespace-pre-wrap text-gray-600 leading-relaxed text-sm">
-                {task.theory.split('\n').map((line, i) => (
-                    <p key={i} className="mb-2">{line}</p>
-                ))}
-              </div>
-              <div className="mt-8 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                <h4 className="font-bold text-sm text-gray-900 mb-2">Шпаргалка Python MPI</h4>
-                <code className="block text-xs font-mono bg-white p-2 border border-gray-200 rounded text-pink-600">
-                  comm = MPI.COMM_WORLD<br/>
-                  rank = comm.Get_rank()<br/>
-                  size = comm.Get_size()<br/>
-                  comm.send(data, dest=x)<br/>
-                  data = comm.recv(source=y)
-                </code>
-              </div>
+              <h2 className="text-xl font-bold text-gray-800 mb-4 mt-0">Справка</h2>
+              <ReactMarkdown 
+                components={{
+                  h3: ({node, ...props}) => <h3 className="text-lg font-bold text-slate-800 mt-6 mb-2" {...props} />,
+                  ul: ({node, ...props}) => <ul className="list-disc pl-5 space-y-1 text-gray-700" {...props} />,
+                  li: ({node, ...props}) => <li className="pl-1" {...props} />,
+                  strong: ({node, ...props}) => <strong className="font-semibold text-slate-900" {...props} />,
+                  code: ({node, ...props}) => <code className="bg-gray-100 text-pink-600 px-1 py-0.5 rounded text-xs font-mono" {...props} />
+                }}
+              >
+                {task.theory}
+              </ReactMarkdown>
             </div>
           )}
         </div>
       </div>
 
-      {/* RIGHT PANEL: EDITOR & CONSOLE */}
       <div className="w-full lg:w-7/12 flex flex-col h-full bg-gray-50">
-        {/* Toolbar */}
         <div className="h-14 bg-white border-b border-gray-200 flex items-center justify-between px-4">
             <div className="flex items-center gap-2">
-                <span className="text-xs font-mono font-bold text-gray-400 uppercase">main.py</span>
-                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-green-100 text-green-700 border border-green-200">Python 3.8+</span>
+                <span className="text-xs font-mono font-bold text-gray-400">MAIN.PY</span>
             </div>
             <div className="flex items-center gap-2">
-                <button 
-                    onClick={handleReset}
-                    className="px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100 rounded-md flex items-center gap-1 transition-colors"
-                >
-                    <RotateCcw size={14} /> Сброс кода
+                <button onClick={handleReset} className="px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100 rounded flex gap-1">
+                    <RotateCcw size={14} /> Сброс
                 </button>
                 <button 
                     onClick={handleRun}
                     disabled={isRunning && !isWaitingForInput}
-                    className={`px-4 py-1.5 text-xs font-bold text-white rounded-md flex items-center gap-2 shadow-sm transition-all ${
-                        isRunning && !isWaitingForInput 
-                        ? 'bg-gray-400 cursor-not-allowed' 
-                        : 'bg-green-600 hover:bg-green-700 active:bg-green-800'
+                    className={`px-4 py-1.5 text-xs font-bold text-white rounded flex gap-2 ${
+                        isRunning && !isWaitingForInput ? 'bg-gray-400' : 'bg-green-600 hover:bg-green-700'
                     }`}
                 >
-                    {isRunning ? (isWaitingForInput ? 'Ожидание ввода...' : 'Запуск...') : <><Play size={14} /> Запустить</>}
+                    {isRunning ? (isWaitingForInput ? 'Ввод...' : 'Запуск...') : <><Play size={14} /> Старт</>}
                 </button>
             </div>
         </div>
 
-        {/* Editor Area */}
         <div className="flex-1 p-1">
             <CodeEditor code={code} onChange={setCode} />
         </div>
 
-        {/* Console/Output Area */}
         <div className="h-1/3 bg-slate-950 border-t border-slate-800 flex flex-col relative">
             <div className="px-4 py-2 border-b border-slate-800 flex items-center gap-2 bg-slate-900">
                 <Monitor size={14} className="text-slate-500" />
-                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Консоль вывода</span>
+                <span className="text-xs font-bold text-slate-400">TERMINAL</span>
             </div>
             
-            <div className="flex-1 overflow-y-auto p-4 font-mono text-sm space-y-1 relative">
+            <div className="flex-1 overflow-y-auto p-4 font-mono text-sm space-y-1">
                 {logs.length === 0 && !isRunning && (
-                    <div className="text-slate-600 italic">Готов к запуску. Нажмите 'Запустить' для симуляции MPI среды.</div>
+                    <div className="text-slate-600 italic">Нажмите Старт для запуска симуляции...</div>
                 )}
-                
                 {logs.map((log, idx) => (
                     <div key={idx} className={`flex gap-3 ${
                         log.type === 'error' ? 'text-red-400' : 
-                        log.type === 'info' ? 'text-blue-400' : 'text-green-400'
+                        log.type === 'info' ? 'text-blue-300' : 'text-green-400'
                     }`}>
-                        <span className="text-slate-600 select-none w-16 text-right shrink-0">
-                            {log.rank === -1 ? '[SYS]' : `[P${log.rank}]`}
+                        <span className="text-slate-600 w-12 text-right shrink-0">
+                            {log.rank === -1 ? '>' : `P${log.rank}`}
                         </span>
                         <span>{log.message}</span>
                     </div>
                 ))}
-                
-                {isRunning && !isWaitingForInput && (
-                    <div className="text-slate-500 animate-pulse mt-2 ml-20">Обработка...</div>
-                )}
-                
-                {/* Input Prompt Overlay in Console */}
                 {isWaitingForInput && (
-                   <div className="mt-2 ml-19 flex flex-col gap-2 animate-in fade-in slide-in-from-bottom-2 duration-200">
+                   <div className="mt-2 ml-16 flex flex-col gap-1 animate-in fade-in">
                       <div className="flex items-center gap-2 text-yellow-400">
                          <Terminal size={14} />
                          <span>{inputPrompt}</span>
@@ -221,15 +185,9 @@ const TaskWorkspace: React.FC<TaskWorkspaceProps> = ({ task }) => {
                           type="text" 
                           value={inputValue}
                           onChange={(e) => setInputValue(e.target.value)}
-                          className="bg-slate-800 border border-slate-700 text-white px-2 py-1 rounded w-64 focus:outline-none focus:border-blue-500 text-sm"
-                          placeholder="Введите значение..."
+                          className="bg-slate-800 border border-slate-700 text-white px-2 py-1 rounded w-64 text-sm focus:outline-none focus:border-blue-500"
                         />
-                        <button 
-                          type="submit"
-                          className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs font-bold"
-                        >
-                          Enter
-                        </button>
+                        <button type="submit" className="bg-blue-600 text-white px-3 py-1 rounded text-xs hover:bg-blue-500">Enter</button>
                       </form>
                    </div>
                 )}

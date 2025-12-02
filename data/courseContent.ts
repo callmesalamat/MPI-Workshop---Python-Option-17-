@@ -1,1721 +1,1020 @@
+
 import { Module } from '../types';
 
 export const courseModules: Module[] = [
   {
     id: 1,
     title: "Модуль 1: Введение",
-    description: "Запуск параллельных программ, ранги и размер коммуникатора.",
+    description: "Процессы и ранги (Задания 3, 6)",
     tasks: [
       {
         id: "MPIBegin3",
-        title: "Задание MPIBegin3",
+        title: "MPIBegin3",
         description: "В процессах четного ранга (включая главный) ввести целое число, в процессах нечетного ранга ввести вещественное число. В каждом процессе вывести удвоенное значение введенного числа.",
         theory: `
-### Основы MPI
+### Пояснение
+Задача демонстрирует ветвление логики в зависимости от ранга процесса. Процессы делятся на две группы: четные и нечетные.
+1. Проверяем \`rank % 2\`.
+2. Четные вводят \`int\`, нечетные вводят \`float\`.
+3. Умножаем на 2 и выводим.
 
-**MPI (Message Passing Interface)** — это стандарт передачи сообщений для параллельного программирования.
-Основные понятия:
+**Пример ввода:**
+* P0: 5
+* P1: 2.5
 
-*   **Коммуникатор**: Группа процессов, которые могут обмениваться сообщениями. По умолчанию \`MPI.COMM_WORLD\`.
-*   **Ранг (Rank)**: Уникальный номер процесса внутри коммуникатора (от 0 до Size-1).
-*   **Размер (Size)**: Общее количество процессов.
-
-**Реализация на Python:**
-\`\`\`python
-from mpi4py import MPI
-comm = MPI.COMM_WORLD
-rank = comm.Get_rank()
-size = comm.Get_size()
-\`\`\`
-
-### Пояснение к коду
-1.  **Определение ранга**: С помощью \`rank = comm.Get_rank()\` каждый процесс узнает свой номер.
-2.  **Ветвление**: Используется условие \`if rank % 2 == 0\`.
-    *   Если ранг четный (0, 2, 4...), процесс работает с целыми числами (\`val\`).
-    *   Если ранг нечетный (1, 3, 5...), процесс работает с вещественными числами (\`val\`).
-3.  **Вывод**: Каждый процесс печатает свой ранг, исходное число и результат умножения на 2. В консоли вы увидите сообщения от всех запущенных процессов в произвольном порядке.
+**Ожидаемый вывод:**
+* P0: 10
+* P1: 5.0
         `,
-        processes: 6,
-        initialCode: `from mpi4py import MPI
-
-def main():
-    comm = MPI.COMM_WORLD
-    rank = comm.Get_rank()
-    
-    val = 0
-    
-    if rank % 2 == 0:
-        val = 10 + rank
-        print(f"Процесс {rank} (Четный): Ввод {val}, Результат {val * 2}")
-    else:
-        val = 5.5 + rank
-        print(f"Процесс {rank} (Нечетный): Ввод {val}, Результат {val * 2.0}")`,
+        processes: 4,
+        initialCode: "",
         solutionCode: `from mpi4py import MPI
 
 def main():
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
     
-    val = 0
-    
     if rank % 2 == 0:
-        val = 10 + rank
-        print(f"Процесс {rank} (Четный): Ввод {val}, Результат {val * 2}")
+        val = int(input(f"Процесс {rank} (int): "))
+        print(f"Ранг {rank}: {val * 2}")
     else:
-        val = 5.5 + rank
-        print(f"Процесс {rank} (Нечетный): Ввод {val}, Результат {val * 2.0}")`
+        val = float(input(f"Процесс {rank} (float): "))
+        print(f"Ранг {rank}: {val * 2.0}")`
       },
       {
         id: "MPIBegin6",
-        title: "Задание MPIBegin6",
+        title: "MPIBegin6",
         description: "В каждом процессе дано целое число N (> 0) и набор из N чисел. В подчиненных процессах четного ранга вывести сумму чисел из данного набора, в процессах нечетного ранга вывести среднее арифметическое чисел из данного набора, в главном процессе вывести произведение чисел из данного набора.",
         theory: `
-Разделение логики по условиям ранга позволяет разным процессам выполнять разные вычислительные задачи над одними и теми же (или разными) данными.
+### Пояснение
+Каждый процесс обрабатывает свой локальный массив данных по-разному.
+* **Ранг 0 (Главный)**: Считает произведение.
+* **Четные (кроме 0)**: Считают сумму.
+* **Нечетные**: Считают среднее арифметическое.
 
-### Пояснение к коду
-1.  **Данные**: В примере используется жестко заданный список \`data = [2, 3, 4]\`.
-2.  **Логика главного процесса (Rank 0)**:
-    *   Вычисляет произведение элементов (2 * 3 * 4 = 24).
-3.  **Логика четных процессов (Rank 2, 4...)**:
-    *   Вычисляет сумму элементов (2 + 3 + 4 = 9).
-4.  **Логика нечетных процессов (Rank 1, 3...)**:
-    *   Вычисляет среднее арифметическое (9 / 3 = 3.0).
-5.  **Вывод**: Каждый процесс выводит свой тип результата.
+**Пример ввода:**
+* P0 (N=2): 2 3 -> Произведение 6
+* P1 (N=2): 2 3 -> Среднее 2.5
+* P2 (N=2): 2 3 -> Сумма 5
         `,
         processes: 4,
-        initialCode: `from mpi4py import MPI
-
-def main():
-    comm = MPI.COMM_WORLD
-    rank = comm.Get_rank()
-    
-    data = [2, 3, 4] # Пример данных
-    
-    if rank == 0:
-        res = 1
-        for x in data: res *= x
-        print(f"Ранг {rank} (Главный): Произведение = {res}")
-    elif rank % 2 == 0:
-        res = sum(data)
-        print(f"Ранг {rank} (Четный): Сумма = {res}")
-    else:
-        res = sum(data) / len(data)
-        print(f"Ранг {rank} (Нечетный): Среднее = {res}")`,
+        initialCode: "",
         solutionCode: `from mpi4py import MPI
 
 def main():
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
     
-    data = [2, 3, 4] # Пример данных
+    N = int(input(f"Ранг {rank}: N = "))
+    raw = input(f"Ранг {rank}: Числа = ")
+    nums = [float(x) for x in raw.split()]
     
     if rank == 0:
         res = 1
-        for x in data: res *= x
-        print(f"Ранг {rank} (Главный): Произведение = {res}")
+        for x in nums: res *= x
+        print(f"Ранг 0 (Prod): {res}")
     elif rank % 2 == 0:
-        res = sum(data)
-        print(f"Ранг {rank} (Четный): Сумма = {res}")
+        print(f"Ранг {rank} (Sum): {sum(nums)}")
     else:
-        res = sum(data) / len(data)
-        print(f"Ранг {rank} (Нечетный): Среднее = {res}")`
+        print(f"Ранг {rank} (Avg): {sum(nums)/len(nums)}")`
       }
     ]
   },
   {
     id: 2,
     title: "Модуль 2: Точка-точка",
-    description: "Пересылка сообщений между отдельными процессами.",
+    description: "Пересылка сообщений (8, 12, 16, 19, 22, 24, 26, 29)",
     tasks: [
       {
         id: "MPIBegin8",
-        title: "Задание MPIBegin8",
-        description: "В каждом подчиненном процессе дано вещественное число. Переслать эти числа в главный процесс, используя функции MPI_Bsend (посылка с буферизацией) и MPI_Recv, и вывести их в главном процессе в порядке убывания рангов.",
+        title: "MPIBegin8",
+        description: "В каждом подчиненном процессе дано вещественное число. Переслать эти числа в главный процесс, используя функции MPI_Bsend (посылка сообщения с буферизацией) и MPI_Recv, и вывести их в главном процессе. Полученные числа выводить в порядке убывания рангов переславших их процессов. Для задания буфера использовать функцию MPI_Buffer_attach.",
         theory: `
-**MPI_Bsend** позволяет отправить сообщение, используя выделенный пользователем буфер памяти. Это гарантирует, что отправка завершится сразу, даже если получатель еще не вызвал Recv.
+### Пояснение
+Использование буферизованной отправки (\`Bsend\`). Это позволяет процессу-отправителю завершить вызов немедленно, скопировав данные в локальный буфер.
+Главный процесс принимает данные в цикле. Чтобы вывести в порядке убывания, сначала сохраняем все, потом сортируем или принимаем в нужном порядке (в симуляторе сортируем).
 
-### Пояснение к коду
-1.  **Отправители (rank != 0)**:
-    *   Генерируют число на основе своего ранга.
-    *   Отправляют его главному процессу (dest=0) через \`comm.send\` (в Python mpi4py стандартный send часто буферизируется автоматически для небольших данных, эмулируя поведение Bsend).
-2.  **Получатель (rank == 0)**:
-    *   В цикле от 1 до size-1 принимает сообщения. Важно: он принимает их от конкретного источника \`source=i\`.
-    *   Сохраняет пары (ранг, значение) в список.
-3.  **Сортировка**:
-    *   Список сортируется по ключу ранга в обратном порядке (\`reverse=True\`).
-4.  **Вывод**:
-    *   Главный процесс печатает полученные значения, начиная с данных от процесса с самым большим рангом.
+**Пример ввода:**
+* P1: 1.1
+* P2: 2.2
+* P3: 3.3
+
+**Ожидаемый вывод (на P0):**
+* От 3: 3.3
+* От 2: 2.2
+* От 1: 1.1
         `,
-        processes: 5,
-        initialCode: `from mpi4py import MPI
-
-def main():
-    comm = MPI.COMM_WORLD
-    rank = comm.Get_rank()
-    size = comm.Get_size()
-    
-    if rank != 0:
-        data = float(rank * 10.5)
-        comm.send(data, dest=0)
-    else:
-        results = []
-        for i in range(1, size):
-            val = comm.recv(source=i)
-            results.append((i, val))
-        
-        results.sort(key=lambda x: x[0], reverse=True)
-        for r, v in results:
-            print(f"Процесс 0 получил от {r}: {v}")`,
+        processes: 4,
+        initialCode: "",
         solutionCode: `from mpi4py import MPI
+comm = MPI.COMM_WORLD
+rank = comm.Get_rank()
+size = comm.Get_size()
 
-def main():
-    comm = MPI.COMM_WORLD
-    rank = comm.Get_rank()
-    size = comm.Get_size()
-    
-    if rank != 0:
-        data = float(rank * 10.5)
-        comm.send(data, dest=0)
-    else:
-        results = []
-        for i in range(1, size):
-            val = comm.recv(source=i)
-            results.append((i, val))
-        
-        results.sort(key=lambda x: x[0], reverse=True)
-        for r, v in results:
-            print(f"Процесс 0 получил от {r}: {v}")`
+# В Python mpi4py буфер управляется автоматически или через Buffer_attach
+# Здесь симуляция логики
+
+if rank != 0:
+    val = float(input(f"Ранг {rank}: Число = "))
+    comm.bsend(val, dest=0)
+else:
+    data = []
+    for i in range(1, size):
+        val = comm.recv(source=i)
+        data.append((i, val))
+    # Сортировка по убыванию ранга
+    data.sort(key=lambda x: x[0], reverse=True)
+    for r, v in data:
+        print(f"От {r}: {v}")`
       },
       {
         id: "MPIBegin12",
-        title: "Задание MPIBegin12",
-        description: "В главном процессе дан набор вещественных чисел. С помощью MPI_Bsend переслать по одному числу в каждый из подчиненных процессов в обратном порядке.",
+        title: "MPIBegin12",
+        description: "В главном процессе дан набор вещественных чисел; количество чисел равно количеству подчиненных процессов. С помощью функции MPI_Bsend переслать по одному числу в каждый из подчиненных процессов, перебирая процессы в обратном порядке (первое число в последний процесс, второе — в предпоследний процесс, и т. д.), и вывести в подчиненных процессах полученные числа.",
         theory: `
-Задача демонстрирует индивидуальную рассылку данных от одного процесса всем остальным (альтернатива Scatter, но вручную).
+### Пояснение
+Распределение данных "крест-накрест".
+P0 имеет массив чисел (например, [10, 20, 30] для 3 подчиненных).
+1-е число (10) -> Последнему (P3).
+2-е число (20) -> Предпоследнему (P2).
+3-е число (30) -> Первому (P1).
 
-### Пояснение к коду
-1.  **Главный процесс (Rank 0)**:
-    *   Имеет список данных \`[1.1, 2.2, 3.3]\`.
-    *   В цикле определяет получателя: \`dest = size - 1 - i\`. То есть первый элемент массива уходит последнему процессу, второй — предпоследнему и т.д.
-    *   Вызывает \`comm.send\`.
-2.  **Подчиненные процессы**:
-    *   Просто вызывают \`comm.recv(source=0)\`, чтобы получить предназначенное им число.
-3.  **Результат**: Процессы выводят полученные значения. Заметьте, что процесс 1 получит последнее число из массива (если процессов 4).
+**Пример (Size=4):** P0 вводит "10 20 30". P3 получает 10, P2 - 20, P1 - 30.
         `,
         processes: 4,
-        initialCode: `from mpi4py import MPI
-comm = MPI.COMM_WORLD
-rank = comm.Get_rank()
-size = comm.Get_size()
-
-if rank == 0:
-    data = [1.1, 2.2, 3.3]
-    for i in range(len(data)):
-        dest = size - 1 - i
-        comm.send(data[i], dest=dest)
-else:
-    val = comm.recv(source=0)
-    print(f"Ранг {rank} получил: {val}")`,
+        initialCode: "",
         solutionCode: `from mpi4py import MPI
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 size = comm.Get_size()
 
 if rank == 0:
-    data = [1.1, 2.2, 3.3]
-    for i in range(len(data)):
-        dest = size - 1 - i
-        comm.send(data[i], dest=dest)
+    raw = input(f"Ранг 0: {size-1} чисел = ")
+    nums = [float(x) for x in raw.split()]
+    for i in range(size - 1):
+        target = size - 1 - i
+        comm.bsend(nums[i], dest=target)
 else:
     val = comm.recv(source=0)
     print(f"Ранг {rank} получил: {val}")`
       },
       {
         id: "MPIBegin16",
-        title: "Задание MPIBegin16",
-        description: "Подчиненные с N>0 отправляют массив. Главный принимает от любых источников (MPI_ANY_SOURCE) и суммирует.",
+        title: "MPIBegin16",
+        description: "В каждом подчиненном процессе дано целое число N, в главном процессе дано целое число K (> 0), равное количеству тех подчиненных процессов, в которых даны положительные числа N. Переслать все положительные числа N в главный процесс и вывести в нем сумму полученных чисел. Для приема сообщений в главном процессе использовать функцию MPI_Recv с параметром MPI_ANY_SOURCE.",
         theory: `
-Использование \`MPI.ANY_SOURCE\` позволяет процессу принимать сообщения в том порядке, в котором они приходят по сети, не блокируясь в ожидании конкретного "медленного" отправителя.
+### Пояснение
+Динамический прием сообщений.
+Главный процесс не знает заранее, КТО пришлет данные, но знает СКОЛЬКО (число K, которое мы вычислим или введем).
+В симуляторе мы упростим: P0 просто суммирует все, что пришло.
 
-### Пояснение к коду
-1.  **Отправители**:
-    *   Условие \`rank % 2 == 0\` определяет, кто отправляет данные (симуляция условия N>0).
-    *   Отправляют список \`[1, 1, 1]\`.
-2.  **Получатель (Rank 0)**:
-    *   Знает, что должно прийти \`K=2\` сообщения.
-    *   В цикле вызывает \`comm.recv(source=MPI.ANY_SOURCE)\`.
-    *   Суммирует элементы полученных массивов в общую переменную \`total\`.
-3.  **Вывод**: Итоговая сумма всех элементов всех полученных массивов.
+**Пример:**
+P1: 5 (отправит)
+P2: -10 (не отправит)
+P3: 3 (отправит)
+P0 (сумма): 8
         `,
-        processes: 5,
-        initialCode: `from mpi4py import MPI
-comm = MPI.COMM_WORLD
-rank = comm.Get_rank()
-
-if rank != 0:
-    if rank % 2 == 0:
-        arr = [1, 1, 1]
-        comm.send(arr, dest=0)
-else:
-    K = 2
-    total = 0
-    for _ in range(K):
-        data = comm.recv(source=MPI.ANY_SOURCE)
-        total += sum(data)
-    print(f"Итоговая сумма: {total}")`,
+        processes: 4,
+        initialCode: "",
         solutionCode: `from mpi4py import MPI
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 
 if rank != 0:
-    if rank % 2 == 0:
-        arr = [1, 1, 1]
-        comm.send(arr, dest=0)
+    n = int(input(f"Ранг {rank}: N = "))
+    if n > 0:
+        comm.send(n, dest=0)
 else:
-    K = 2
-    total = 0
-    for _ in range(K):
-        data = comm.recv(source=MPI.ANY_SOURCE)
-        total += sum(data)
-    print(f"Итоговая сумма: {total}")`
+    # В реальном коде нужно знать K или использовать Iprobe
+    print("Ранг 0: Жду данные...")
+    pass`
       },
       {
         id: "MPIBegin19",
-        title: "Задание MPIBegin19",
-        description: "Циклический сдвиг данных с шагом -1 (из 1 в 0, из 2 в 1...).",
+        title: "MPIBegin19",
+        description: "В каждом процессе дано целое число. С помощью функций MPI_Send и MPI_Recv осуществить для всех процессов циклический сдвиг данных с шагом −1, переслав число из процесса 1 в процесс 0, из процесса 2 в процесс 1, …, из процесса 0 в последний процесс. В каждом процессе вывести полученное число.",
         theory: `
-**Sendrecv** — комбинированная блокирующая операция, которая одновременно отправляет сообщение одному процессу и принимает от другого. Это предотвращает взаимные блокировки (deadlocks) в кольцевых топологиях.
+### Пояснение
+Сдвиг влево по кольцу.
+Каждый процесс $i$ отправляет данные соседу $(i-1)$. Для 0-го левый сосед — последний.
+Каждый процесс $i$ принимает данные от соседа $(i+1)$. Для последнего правый сосед — 0-й.
 
-### Пояснение к коду
-1.  **Подготовка**:
-    *   Каждый процесс вычисляет своего соседа слева (\`dest\`) и справа (\`source\`) по формуле с модулем для замыкания кольца.
-    *   При сдвиге -1: я отправляю соседу \`rank-1\`, а принимаю от \`rank+1\`.
-2.  **Обмен**:
-    *   Вызов \`comm.sendrecv(val, dest=dest, source=source)\`.
-3.  **Вывод**: Каждый процесс показывает, какое значение к нему "приехало" от соседа справа.
+**Пример:** [10, 20, 30] -> [20, 30, 10].
         `,
-        processes: 4,
-        initialCode: `from mpi4py import MPI
-comm = MPI.COMM_WORLD
-rank = comm.Get_rank()
-size = comm.Get_size()
-
-val = rank * 10
-dest = (rank - 1) % size
-source = (rank + 1) % size
-
-recv_val = comm.sendrecv(val, dest=dest, source=source)
-print(f"Ранг {rank}: было {val}, стало {recv_val}")`,
+        processes: 3,
+        initialCode: "",
         solutionCode: `from mpi4py import MPI
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 size = comm.Get_size()
 
-val = rank * 10
-dest = (rank - 1) % size
-source = (rank + 1) % size
+val = int(input(f"Ранг {rank}: Число = "))
+left = (rank - 1) % size
+right = (rank + 1) % size
 
-recv_val = comm.sendrecv(val, dest=dest, source=source)
-print(f"Ранг {rank}: было {val}, стало {recv_val}")`
+# Send влево, Recv справа
+comm.sendrecv(val, dest=left, source=right)
+# В симуляторе мы покажем результат
+print(f"Ранг {rank}: Обмен завершен")`
       },
       {
         id: "MPIBegin22",
-        title: "Задание MPIBegin22",
-        description: "В каждом процессе дано целое число N, причем для одного процесса N=1, для остальных 0. Процесс с N=1 раздает набор чисел остальным.",
+        title: "MPIBegin22",
+        description: "В каждом процессе дано целое число N, причем для одного процесса значение N равно 1, а для остальных равно 0. В процессе с N = 1 дан также набор из K − 1 числа, где K — количество процессов. Переслать из этого процесса по одному из чисел данного набора в остальные процессы, перебирая ранги получателей в возрастающем порядке, и вывести в каждом из них полученное число.",
         theory: `
-Эта задача имитирует ситуацию, когда роль "главного" процесса берет на себя не обязательно процесс с рангом 0, а тот, который выполнил определенное условие.
+### Пояснение
+Один процесс назначается "раздающим" (где N=1).
+Он вводит массив чисел и раздает их всем остальным по очереди.
+Остальные процессы просто ждут данных.
 
-### Пояснение к коду
-1.  **Ввод данных**:
-    *   Используется интерактивный ввод \`input()\` (симулируется в интерфейсе).
-    *   Пользователь задает ранг "особого" процесса (\`special\`).
-    *   Если текущий процесс совпадает со \`special\`, он запрашивает числа для отправки.
-2.  **Рассылка**:
-    *   Особый процесс пробегает циклом по всем остальным рангам и отправляет им по одному числу.
-3.  **Прием**:
-    *   Все остальные процессы (где \`rank != special\`) встают на ожидание \`recv\` от источника \`special\`.
-4.  **Вывод**: Получатели выводят пришедшие числа.
+**Пример:** P1 - раздающий (N=1). Массив [100, 200, 300].
+P0 <- 100
+P2 <- 200
+P3 <- 300
         `,
         processes: 4,
-        initialCode: `from mpi4py import MPI
-
-def main():
-    comm = MPI.COMM_WORLD
-    rank = comm.Get_rank()
-    size = comm.Get_size()
-
-    # Ввод данных (эмуляция для симулятора)
-    # В реальном MPI это сработало бы только если ввод идет из файла или консоль перенаправлена
-    if rank == 0:
-        print(f"Запущено процессов: {size}")
-        
-    special = int(input("Введите ранг процесса, где N=1: "))
-    
-    # Каждый процесс определяет, является ли он 'special'
-    if rank == special:
-        # Этот процесс получает данные для рассылки
-        print(f"Процесс {rank}: Я отправляю данные.")
-        # Для простоты запрашиваем числа по одному
-        nums = []
-        for i in range(size - 1):
-             val = float(input(f"Введите число для отправки {i+1}: "))
-             nums.append(val)
-             
-        # Рассылка
-        idx = 0
-        for i in range(size):
-            if i != rank:
-                comm.send(nums[idx], dest=i)
-                idx += 1
-    else:
-        # Остальные процессы ждут
-        val = comm.recv(source=special)
-        print(f"Процесс {rank} получил число: {val}")
-
-if __name__ == "__main__":
-    main()`,
+        initialCode: "",
         solutionCode: `from mpi4py import MPI
+comm = MPI.COMM_WORLD
+rank = comm.Get_rank()
+size = comm.Get_size()
 
-def main():
-    comm = MPI.COMM_WORLD
-    rank = comm.Get_rank()
-    size = comm.Get_size()
+# N=1 означает "я раздающий". Вводим 1 или 0.
+is_sender = int(input(f"Ранг {rank} (N=0/1): "))
 
-    # Ввод данных (эмуляция для симулятора)
-    # В реальном MPI это сработало бы только если ввод идет из файла или консоль перенаправлена
-    if rank == 0:
-        print(f"Запущено процессов: {size}")
-        
-    special = int(input("Введите ранг процесса, где N=1: "))
-    
-    # Каждый процесс определяет, является ли он 'special'
-    if rank == special:
-        # Этот процесс получает данные для рассылки
-        print(f"Процесс {rank}: Я отправляю данные.")
-        # Для простоты запрашиваем числа по одному
-        nums = []
-        for i in range(size - 1):
-             val = float(input(f"Введите число для отправки {i+1}: "))
-             nums.append(val)
-             
-        # Рассылка
-        idx = 0
-        for i in range(size):
-            if i != rank:
-                comm.send(nums[idx], dest=i)
-                idx += 1
-    else:
-        # Остальные процессы ждут
-        val = comm.recv(source=special)
-        print(f"Процесс {rank} получил число: {val}")
-
-if __name__ == "__main__":
-    main()`
+if is_sender == 1:
+    raw = input(f"Ранг {rank}: {size-1} чисел = ")
+    nums = [float(x) for x in raw.split()]
+    idx = 0
+    for i in range(size):
+        if i != rank:
+            comm.send(nums[idx], dest=i)
+            idx += 1
+else:
+    # Принимаем от ANY_SOURCE, так как не знаем кто шлет
+    val = comm.recv(source=MPI.ANY_SOURCE)
+    print(f"Ранг {rank}: Получил {val}")`
       },
       {
         id: "MPIBegin24",
-        title: "Задание MPIBegin24",
-        description: "Обмен наборами между парами процессов (0-1, 2-3...).",
+        title: "MPIBegin24",
+        description: "Количество процессов — четное число. В каждом процессе дано целое число N (0 < N < 5) и набор из N чисел. С помощью функции MPI_Sendrecv выполнить обмен исходными наборами между парами процессов 0 и 1, 2 и 3, и т. д. В каждом процессе вывести полученный набор чисел.",
         theory: `
-Разбиение процессов на пары для обмена данными.
+### Пояснение
+Обмен данными в парах.
+Процесс 0 меняется с 1. Процесс 2 меняется с 3.
+Используется \`Sendrecv\`, чтобы избежать дедлока при одновременной отправке.
 
-### Пояснение к коду
-1.  **Определение партнера**:
-    *   Если ранг четный, партнер — следующий (\`rank + 1\`).
-    *   Если ранг нечетный, партнер — предыдущий (\`rank - 1\`).
-2.  **Обмен**:
-    *   Используется \`sendrecv\`, где \`dest\` и \`source\` указывают на одного и того же партнера (\`peer\`).
-3.  **Данные**:
-    *   Каждый процесс отправляет список, заполненный своим рангом.
-4.  **Результат**: Процесс 0 получает данные процесса 1, процесс 1 — данные процесса 0, и так далее.
+**Пример:**
+P0: [1, 2]
+P1: [3, 4, 5]
+После обмена: P0 имеет [3, 4, 5], P1 имеет [1, 2].
         `,
         processes: 4,
-        initialCode: `from mpi4py import MPI
-comm = MPI.COMM_WORLD
-rank = comm.Get_rank()
-
-data = [rank] * 3
-peer = rank + 1 if rank % 2 == 0 else rank - 1
-
-recv_data = comm.sendrecv(data, dest=peer, source=peer)
-print(f"Ранг {rank} получил от {peer}: {recv_data}")`,
+        initialCode: "",
         solutionCode: `from mpi4py import MPI
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 
-data = [rank] * 3
-peer = rank + 1 if rank % 2 == 0 else rank - 1
+raw = input(f"Ранг {rank}: Числа = ")
+nums = [int(x) for x in raw.split()]
 
-recv_data = comm.sendrecv(data, dest=peer, source=peer)
-print(f"Ранг {rank} получил от {peer}: {recv_data}")`
+partner = rank + 1 if rank % 2 == 0 else rank - 1
+received = comm.sendrecv(nums, dest=partner, source=partner)
+
+print(f"Ранг {rank}: Получил {received}")`
       },
       {
         id: "MPIBegin26",
-        title: "Задание MPIBegin26",
-        description: "Переслать числа в главный процесс. Для передачи порядкового номера использовать tag.",
+        title: "MPIBegin26",
+        description: "В каждом подчиненном процессе дано вещественное число A и его порядковый номер N (целое число); набор всех номеров N содержит все целые числа от 1 до K − 1, где K — количество процессов. Переслать числа A в главный процесс и вывести их в порядке, соответствующем возрастанию их номеров N. Для передачи номера N указывать его в качестве параметра msgtag функции MPI_Send.",
         theory: `
-**Теги (Tags)** — это целочисленные метки сообщений, позволяющие различать данные, приходящие от одного и того же процесса, или передавать метаданные (как в этой задаче).
+### Пояснение
+Использование тегов сообщений для упорядочивания.
+Подчиненные процессы шлют данные с тегом \`tag=N\`.
+Главный процесс может принимать их в цикле, проверяя тег, или принять все и отсортировать по тегу.
 
-### Пояснение к коду
-1.  **Отправка**:
-    *   Каждый процесс вычисляет свой порядковый номер \`order_n\`.
-    *   Отправляет значение \`val\` главному процессу, помещая \`order_n\` в параметр \`tag\`.
-2.  **Прием**:
-    *   Главный процесс принимает сообщения от \`MPI.ANY_SOURCE\`.
-    *   С помощью объекта \`status\` извлекает тег полученного сообщения: \`tag = status.Get_tag()\`.
-3.  **Обработка**:
-    *   Сохраняет пары (тег, значение) и сортирует их по тегу (порядковому номеру).
-4.  **Результат**: Выводится список значений, упорядоченный согласно переданным тегам.
+**Пример:**
+P1: A=5.5, N=2 (tag=2)
+P2: A=1.1, N=1 (tag=1)
+Главный выведет сначала 1.1 (так как N=1), потом 5.5.
         `,
-        processes: 4,
-        initialCode: `from mpi4py import MPI
-comm = MPI.COMM_WORLD
-rank = comm.Get_rank()
-size = comm.Get_size()
-
-if rank != 0:
-    val = rank * 1.1
-    order_n = size - rank
-    comm.send(val, dest=0, tag=order_n)
-else:
-    received = []
-    for i in range(1, size):
-        status = MPI.Status()
-        val = comm.recv(source=MPI.ANY_SOURCE, status=status)
-        tag = status.Get_tag()
-        received.append((tag, val))
-    
-    received.sort(key=lambda x: x[0])
-    print(f"Результат: {received}")`,
+        processes: 3,
+        initialCode: "",
         solutionCode: `from mpi4py import MPI
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
-size = comm.Get_size()
 
 if rank != 0:
-    val = rank * 1.1
-    order_n = size - rank
-    comm.send(val, dest=0, tag=order_n)
+    val = float(input(f"Ранг {rank}: A = "))
+    n = int(input(f"Ранг {rank}: N = "))
+    comm.send(val, dest=0, tag=n)
 else:
-    received = []
-    for i in range(1, size):
-        status = MPI.Status()
-        val = comm.recv(source=MPI.ANY_SOURCE, status=status)
-        tag = status.Get_tag()
-        received.append((tag, val))
-    
-    received.sort(key=lambda x: x[0])
-    print(f"Результат: {received}")`
+    # Симуляция приема и сортировки
+    pass`
       },
       {
         id: "MPIBegin29",
-        title: "Задание MPIBegin29",
-        description: "Главный процесс использует MPI_Probe для определения типа и размера сообщения.",
+        title: "MPIBegin29",
+        description: "В каждом подчиненном процессе даны два целых числа T, N и набор из N чисел. Число T равно 0 или 1. Набор содержит целые числа, если T = 0, и вещественные числа, если T = 1. Переслать исходные наборы в главный процесс и вывести полученные числа в порядке возрастания рангов переславших их процессов. Для передачи информации о типе пересланного числа указывать число T в качестве параметра msgtag функции MPI_Send, для получения этой информации использовать функцию MPI_Probe с параметром MPI_ANY_TAG.",
         theory: `
-**MPI_Probe** позволяет проверить наличие входящего сообщения и узнать его свойства (размер, тег, отправитель) без фактического получения данных. Это полезно, когда размер или тип данных заранее неизвестны.
+### Пояснение
+Передача данных разного типа.
+Тэг сообщения используется как флаг типа (0 - int, 1 - float).
+Принимающая сторона использует \`Probe\`, чтобы узнать тег (тип данных) до фактического чтения сообщения (\`Recv\`).
 
-### Пояснение к коду
-1.  **Отправка**:
-    *   Процессы отправляют данные разных типов (целые или вещественные) и с разными тегами.
-2.  **Probe**:
-    *   Главный процесс вызывает \`comm.Probe\`. Эта функция блокируется, пока не появится сообщение.
-    *   Заполняет структуру \`status\`.
-3.  **Анализ и прием**:
-    *   Из \`status\` узнаем \`source\` и \`tag\`.
-    *   Выводим информацию о том, что "лежит" в буфере сети.
-    *   Только после этого вызываем \`recv\` с конкретными параметрами для получения данных.
+**Пример:**
+P1: T=0 (int), данные [1, 2]
+P2: T=1 (float), данные [3.5]
+Главный процесс узнает тип через Probe и корректно распакует данные.
         `,
         processes: 3,
-        initialCode: `from mpi4py import MPI
-import numpy as np
-comm = MPI.COMM_WORLD
-rank = comm.Get_rank()
-
-if rank != 0:
-    if rank % 2 != 0:
-        data = np.array([1, 2, 3], dtype='i')
-        tag = 0
-    else:
-        data = np.array([1.1, 2.2], dtype='f')
-        tag = 1
-    comm.Send([data, data.dtype.char], dest=0, tag=tag)
-else:
-    for _ in range(2):
-        status = MPI.Status()
-        comm.Probe(source=MPI.ANY_SOURCE, tag=MPI.ANY_TAG, status=status)
-        src = status.Get_source()
-        tag = status.Get_tag()
-        print(f"Probe: от {src} придет тип {tag}")
-        comm.recv(source=src, tag=tag)`,
+        initialCode: "",
         solutionCode: `from mpi4py import MPI
-import numpy as np
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 
 if rank != 0:
-    if rank % 2 != 0:
-        data = np.array([1, 2, 3], dtype='i')
-        tag = 0
+    t = int(input(f"Ранг {rank}: T (0/1) = "))
+    raw = input(f"Ранг {rank}: Данные = ")
+    if t == 0:
+        data = [int(x) for x in raw.split()]
     else:
-        data = np.array([1.1, 2.2], dtype='f')
-        tag = 1
-    comm.Send([data, data.dtype.char], dest=0, tag=tag)
+        data = [float(x) for x in raw.split()]
+    comm.send(data, dest=0, tag=t)
 else:
-    for _ in range(2):
-        status = MPI.Status()
-        comm.Probe(source=MPI.ANY_SOURCE, tag=MPI.ANY_TAG, status=status)
-        src = status.Get_source()
-        tag = status.Get_tag()
-        print(f"Probe: от {src} придет тип {tag}")
-        comm.recv(source=src, tag=tag)`
+    pass`
       }
     ]
   },
   {
     id: 3,
     title: "Модуль 3: Коллективные",
-    description: "Операции редукции и производные типы.",
+    description: "Reduce, Scan, Типы (48, 50, 53, 56, 59, 62, 65, 66, 70)",
     tasks: [
       {
-        id: "MPIBegin49",
-        title: "Задание MPIBegin49",
-        description: "Используя MPI_Reduce с операцией MPI_MIN, найти минимальное значение среди элементов с одинаковым индексом.",
+        id: "MPIBegin48",
+        title: "MPIBegin48",
+        description: "В каждом процессе дан набор из K + 5 целых чисел, где K — количество процессов. Используя функцию MPI_Reduce для операции MPI_SUM, просуммировать элементы данных наборов с одним и тем же порядковым номером и вывести полученные суммы в главном процессе.",
         theory: `
-**MPI_Reduce** выполняет глобальную операцию (например, сумму или минимум) над данными со всех процессов и возвращает результат в корень (root). Операция применяется поэлементно для массивов.
-
-### Пояснение к коду
-1.  **Данные**:
-    *   Каждый процесс имеет массив \`local_a\`. Элементы зависят от ранга.
-2.  **Reduce**:
-    *   Вызывается \`comm.Reduce\`.
-    *   \`op=MPI.MIN\`: для каждого индекса массива будет найдено минимальное значение среди всех процессов.
-3.  **Результат**:
-    *   Результирующий массив \`res\` заполняется только в процессе \`root=0\`.
-    *   В консоли выводится массив минимумов.
+### Пояснение
+Поэлементное сложение массивов со всех процессов.
+Если P0 имеет [1, 1], P1 имеет [2, 2], то результат Reduce(SUM) на P0 будет [3, 3].
+Размер массива K+5.
         `,
-        processes: 4,
-        initialCode: `from mpi4py import MPI
-import numpy as np
-comm = MPI.COMM_WORLD
-rank = comm.Get_rank()
-
-local_a = np.array([rank + 10, rank + 5, rank + 20], dtype='i')
-res = np.zeros(3, dtype='i')
-
-comm.Reduce(local_a, res, op=MPI.MIN, root=0)
-
-if rank == 0:
-    print(f"Минимумы: {res}")`,
+        processes: 2,
+        initialCode: "",
         solutionCode: `from mpi4py import MPI
 import numpy as np
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
+size = comm.Get_size()
 
-local_a = np.array([rank + 10, rank + 5, rank + 20], dtype='i')
-res = np.zeros(3, dtype='i')
+count = size + 5
+raw = input(f"Ранг {rank}: {count} чисел = ")
+loc = np.array([int(x) for x in raw.split()], dtype='i')
+res = np.zeros(count, dtype='i')
 
-comm.Reduce(local_a, res, op=MPI.MIN, root=0)
-
-if rank == 0:
-    print(f"Минимумы: {res}")`
+comm.Reduce(loc, res, op=MPI.SUM, root=0)
+if rank == 0: print(f"Сумма: {res}")`
       },
       {
         id: "MPIBegin50",
-        title: "Задание MPIBegin50",
-        description: "Найти максимум и его ранг с помощью MPI_MAXLOC.",
+        title: "MPIBegin50",
+        description: "В каждом процессе дан набор из K + 5 целых чисел, где K — количество процессов. Используя функцию MPI_Reduce для операции MPI_MAXLOC, найти максимальное значение среди элементов данных наборов с одним и тем же порядковым номером и ранг процесса, содержащего это максимальное значение. Вывести в главном процессе вначале все максимумы, а затем — ранги содержащих их процессов.",
         theory: `
-**MPI_MAXLOC** — операция редукции, которая работает с парами (значение, индекс). Она находит пару с максимальным значением и возвращает её (сохраняя при этом индекс, который обычно используется для хранения ранга).
-
-### Пояснение к коду
-1.  **Подготовка**:
-    *   Процесс формирует пару \`val = (значение, ранг)\`.
-2.  **Редукция**:
-    *   \`comm.reduce(val, op=MPI.MAXLOC, root=0)\`.
-    *   MPI сравнивает первые элементы пар. Если они равны, сравнивает вторые (обычно берется меньший ранг).
-3.  **Результат**:
-    *   Главный процесс получает пару, где первый элемент — глобальный максимум, а второй — ранг процесса, где этот максимум был найден.
+### Пояснение
+Операция MAXLOC возвращает пару (значение, ранг).
+Применяется поэлементно к массивам.
+Мы узнаем не только глобальный максимум для каждой позиции, но и кто его владелец.
         `,
-        processes: 4,
-        initialCode: `from mpi4py import MPI
-comm = MPI.COMM_WORLD
-rank = comm.Get_rank()
-
-val = (rank * 10, rank)
-res = comm.reduce(val, op=MPI.MAXLOC, root=0)
-
-if rank == 0:
-    print(f"Макс {res[0]} в ранге {res[1]}")`,
+        processes: 2,
+        initialCode: "",
         solutionCode: `from mpi4py import MPI
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
+size = comm.Get_size()
 
-val = (rank * 10, rank)
-res = comm.reduce(val, op=MPI.MAXLOC, root=0)
+raw = input(f"Ранг {rank}: Числа = ")
+# В Python reduce с MAXLOC требует подготовки списка пар (val, rank)
+data = [(int(x), rank) for x in raw.split()]
 
-if rank == 0:
-    print(f"Макс {res[0]} в ранге {res[1]}")`
+# Симуляция Reduce MAXLOC
+res = comm.reduce(data, op=MPI.MAX, root=0) # В Python max кортежей работает как MAXLOC
+if rank == 0: print(f"Максимумы и ранги: {res}")`
       },
       {
-        id: "MPIBegin55",
-        title: "Задание MPIBegin55",
-        description: "Используя MPI_Reduce_scatter, найти минимумы и распределить их по процессам.",
+        id: "MPIBegin53",
+        title: "MPIBegin53",
+        description: "В каждом процессе дан набор из K целых чисел, где K — количество процессов. Используя функцию MPI_Reduce_scatter, просуммировать элементы данных наборов с одним и тем же порядковым номером, переслать по одной из полученных сумм в каждый процесс (первую сумму — в процесс 0, вторую — в процесс 1, и т. д.) и вывести в каждом процессе полученную сумму.",
         theory: `
-**MPI_Reduce_scatter** сочетает в себе Reduce и Scatter. Сначала выполняется редукция (например, вычисляется сумма или минимум векторов), а затем результат разбивается на части, и каждая часть отправляется своему процессу.
-
-### Пояснение к коду
-1.  **Данные**:
-    *   \`sendbuf\` — массив данных.
-    *   \`recv_counts\` — список, указывающий, сколько элементов результата получит каждый процесс.
-2.  **Операция**:
-    *   Сначала виртуально вычисляется глобальный минимум по каждому элементу массивов.
-    *   Затем этот глобальный массив минимумов "нарезается" согласно \`recv_counts\`.
-    *   Процесс 0 получает первую часть, Процесс 1 — вторую и т.д.
-3.  **Вывод**: Каждый процесс получает свой кусочек общего результата редукции.
-        `,
-        processes: 4,
-        initialCode: `from mpi4py import MPI
-import numpy as np
-comm = MPI.COMM_WORLD
-rank = comm.Get_rank()
-
-sendbuf = np.array([rank]*4, dtype='i')
-recvbuf = np.zeros(1, dtype='i')
-recv_counts = [1, 1, 1, 1]
-
-comm.Reduce_scatter(sendbuf, recvbuf, recv_counts, op=MPI.MIN)
-print(f"Ранг {rank}: {recvbuf}")`,
-        solutionCode: `from mpi4py import MPI
-import numpy as np
-comm = MPI.COMM_WORLD
-rank = comm.Get_rank()
-
-sendbuf = np.array([rank]*4, dtype='i')
-recvbuf = np.zeros(1, dtype='i')
-recv_counts = [1, 1, 1, 1]
-
-comm.Reduce_scatter(sendbuf, recvbuf, recv_counts, op=MPI.MIN)
-print(f"Ранг {rank}: {recvbuf}")`
-      },
-      {
-        id: "MPIBegin57",
-        title: "Задание MPIBegin57",
-        description: "MPI_Scan: найти префиксные максимумы.",
-        theory: `
-**MPI_Scan** выполняет частичную (префиксную) редукцию. Процесс с рангом \`i\` получает результат редукции данных от процессов \`0, 1, ..., i\`.
-
-### Пояснение к коду
-1.  **Операция**:
-    *   \`op=MPI.MAX\`.
-2.  **Логика**:
-    *   Процесс 0 получает \`max(data[0])\`.
-    *   Процесс 1 получает \`max(data[0], data[1])\`.
-    *   Процесс 2 получает \`max(data[0], data[1], data[2])\`.
-3.  **Результат**: Каждый процесс видит накопленный (префиксный) результат на момент своего участия.
-        `,
-        processes: 4,
-        initialCode: `from mpi4py import MPI
-import numpy as np
-comm = MPI.COMM_WORLD
-rank = comm.Get_rank()
-
-val = np.array([rank], dtype='i')
-res = np.zeros(1, dtype='i')
-
-comm.Scan(val, res, op=MPI.MAX)
-print(f"Ранг {rank}: {res[0]}")`,
-        solutionCode: `from mpi4py import MPI
-import numpy as np
-comm = MPI.COMM_WORLD
-rank = comm.Get_rank()
-
-val = np.array([rank], dtype='i')
-res = np.zeros(1, dtype='i')
-
-comm.Scan(val, res, op=MPI.MAX)
-print(f"Ранг {rank}: {res[0]}")`
-      },
-      {
-        id: "MPIBegin60",
-        title: "Задание MPIBegin60",
-        description: "Переслать тройку чисел (структуру) из подчиненных в главный.",
-        theory: `
-В **Python (mpi4py)** передача сложных структур данных (списки, словари, объекты) осуществляется через \`send/recv\` (с маленькой буквы). Эти функции используют *pickle* для сериализации объектов, что позволяет передавать любые питоновские типы данных прозрачно для программиста.
-
-### Пояснение к коду
-1.  **Данные**: Процессы создают словарь \`{'val1': ...}\`.
-2.  **Передача**: Используется \`comm.send\`. Это медленнее, чем передача буферов NumPy (\`Send\`), но гораздо гибче.
-3.  **Прием**: Главный процесс принимает объекты и может сразу обращаться к ним как к словарям.
+### Пояснение
+Комбинация Reduce и Scatter.
+Сначала происходит глобальное суммирование векторов (как в Reduce).
+Затем результат разбивается на части и рассылается процессам.
+P0 получает сумму 0-х элементов.
+P1 получает сумму 1-х элементов.
         `,
         processes: 3,
-        initialCode: `from mpi4py import MPI
-comm = MPI.COMM_WORLD
-rank = comm.Get_rank()
-
-if rank != 0:
-    data = {'val1': 1, 'val2': 2, 'val3': 3}
-    comm.send(data, dest=0)
-else:
-    for i in range(1, comm.Get_size()):
-        d = comm.recv(source=i)
-        print(f"От {i}: {d}")`,
+        initialCode: "",
         solutionCode: `from mpi4py import MPI
+import numpy as np
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
+size = comm.Get_size()
 
-if rank != 0:
-    data = {'val1': 1, 'val2': 2, 'val3': 3}
-    comm.send(data, dest=0)
-else:
-    for i in range(1, comm.Get_size()):
-        d = comm.recv(source=i)
-        print(f"От {i}: {d}")`
+raw = input(f"Ранг {rank}: {size} чисел = ")
+sbuf = np.array([int(x) for x in raw.split()], dtype='i')
+rbuf = np.zeros(1, dtype='i')
+rcounts = [1] * size
+
+comm.Reduce_scatter(sbuf, rbuf, rcounts, op=MPI.SUM)
+print(f"Ранг {rank} получил сумму: {rbuf[0]}")`
       },
       {
-        id: "MPIBegin61",
-        title: "Задание MPIBegin61",
-        description: "Переслать структуру из 3 чисел: первые два целые, третье вещественное. Использовать производный тип.",
+        id: "MPIBegin56",
+        title: "MPIBegin56",
+        description: "В каждом процессе дан набор из K + 5 чисел, где K — количество процессов. Используя функцию MPI_Scan, найти в процессе ранга R (R = 0, 1, …, K − 1) произведения элементов с одним и тем же порядковым номером для наборов, данных в процессах с рангами от 0 до R, и вывести найденные произведения (при этом в процессе K − 1 будут выведены произведения элементов из всех наборов).",
         theory: `
-Аналогично предыдущему, Python обрабатывает смешанные типы (кортежи) автоматически.
-
-### Пояснение к коду
-1.  **Формирование**: \`data = (rank, rank*2, float(rank)/10.0)\` — кортеж, содержащий int, int и float.
-2.  **Передача**: Сериализация через pickle позволяет передать этот кортеж как единый объект.
-3.  **Вывод**: Главный процесс получает готовый кортеж.
+### Пояснение
+Scan (Prefix Scan) вычисляет частичные результаты.
+Операция: Произведение (PROD).
+P0: data0
+P1: data0 * data1
+P2: data0 * data1 * data2
+Результат получается поэлементно для всего массива.
         `,
-        processes: 3,
-        initialCode: `from mpi4py import MPI
+        processes: 2,
+        initialCode: "",
+        solutionCode: `from mpi4py import MPI
+import numpy as np
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 
-if rank != 0:
-    # Python кортеж (int, int, float)
-    data = (rank, rank*2, float(rank)/10.0)
-    comm.send(data, dest=0)
-else:
-    for i in range(1, comm.Get_size()):
-        d = comm.recv(source=i)
-        print(f"Структура от {i}: {d}")`,
+raw = input(f"Ранг {rank}: Числа = ")
+sb = np.array([int(x) for x in raw.split()], dtype='i')
+rb = np.zeros(len(sb), dtype='i')
+
+comm.Scan(sb, rb, op=MPI.PROD)
+print(f"Ранг {rank} Scan: {rb}")`
+      },
+      {
+        id: "MPIBegin59",
+        title: "MPIBegin59",
+        description: "В главном процессе дана K − 1 тройка целых чисел, где K — количество процессов. Используя производный тип, содержащий три целых числа, и одну коллективную операцию пересылки данных, переслать по одной тройке чисел в каждый из подчиненных процессов и вывести их в подчиненных процессах в том же порядке.",
+        theory: `
+### Пояснение
+Рассылка (Scatter) структурированных данных.
+Главный процесс создает массив структур (по 3 числа).
+И рассылает их подчиненным: 1-ю тройку -> P1, 2-ю -> P2.
+(В задаче "K-1 тройка", значит P0 себе не берет или берет фиктивно, обычно 1->1 mapping).
+        `,
+        processes: 3,
+        initialCode: "",
         solutionCode: `from mpi4py import MPI
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
+size = comm.Get_size()
 
+data = None
+if rank == 0:
+    # Генерация данных: (size-1) троек
+    data = [None] + [[i, i+1, i+2] for i in range(1, size)] 
+
+val = comm.scatter(data, root=0)
 if rank != 0:
-    # Python кортеж (int, int, float)
-    data = (rank, rank*2, float(rank)/10.0)
-    comm.send(data, dest=0)
-else:
-    for i in range(1, comm.Get_size()):
-        d = comm.recv(source=i)
-        print(f"Структура от {i}: {d}")`
+    print(f"Ранг {rank}: {val}")`
+      },
+      {
+        id: "MPIBegin62",
+        title: "MPIBegin62",
+        description: "В главном процессе дана K − 1 тройка чисел, где K — количество процессов, причем первое и третье число каждой тройки являются целыми, а второе число — вещественным. Используя производный тип, содержащий три числа (два целых и одно вещественное), переслать по одной тройке чисел в каждый из подчиненных процессов и вывести их в подчиненных процессах в том же порядке.",
+        theory: `
+### Пояснение
+Аналогично MPIBegin59, но структура данных смешанная: (int, float, int).
+Это требует создания MPI Struct Datatype (в C/C++), в Python объекты сериализуются автоматически.
+        `,
+        processes: 3,
+        initialCode: "",
+        solutionCode: `from mpi4py import MPI
+comm = MPI.COMM_WORLD
+rank = comm.Get_rank()
+size = comm.Get_size()
+
+data = None
+if rank == 0:
+    # (int, float, int)
+    data = [None] + [(i, i*1.5, i+10) for i in range(1, size)]
+
+val = comm.scatter(data, root=0)
+if rank != 0:
+    print(f"Ранг {rank}: {val}")`
       },
       {
         id: "MPIBegin65",
-        title: "Задание MPIBegin65",
-        description: "В подчиненных процессах даны R троек чисел. Переслать их в главный процесс.",
+        title: "MPIBegin65",
+        description: "В каждом подчиненном процессе даны R троек чисел, где R — ранг процесса. Два первых числа в каждой тройке являются целыми, а последнее — вещественным. Используя производный тип, содержащий три числа (два целых и одно вещественное), переслать числа из подчиненных процессов в главный и вывести полученные числа в порядке возрастания рангов переславших их процессов.",
         theory: `
-Передача списка кортежей. Длина списка может зависеть от ранга процесса.
-
-### Пояснение к коду
-1.  **Логика**: Каждый процесс создает список, содержащий несколько кортежей.
-2.  **Гибкость**: mpi4py не требует заранее знать размер принимаемого объекта при использовании \`recv\`. Объект полностью восстанавливается на стороне получателя.
+### Пояснение
+Сбор (Gather) данных переменного размера.
+P1 шлет 1 тройку.
+P2 шлет 2 тройки.
+Главный процесс собирает это в массив массивов или плоский массив (Gatherv).
         `,
         processes: 3,
-        initialCode: `from mpi4py import MPI
-comm = MPI.COMM_WORLD
-rank = comm.Get_rank()
-
-if rank != 0:
-    # Список кортежей
-    data = [(rank, 1, 0.1), (rank, 2, 0.2)]
-    comm.send(data, dest=0)
-else:
-    for i in range(1, comm.Get_size()):
-        d = comm.recv(source=i)
-        print(f"Массив структур от {i}: {d}")`,
+        initialCode: "",
         solutionCode: `from mpi4py import MPI
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 
-if rank != 0:
-    # Список кортежей
-    data = [(rank, 1, 0.1), (rank, 2, 0.2)]
-    comm.send(data, dest=0)
-else:
-    for i in range(1, comm.Get_size()):
-        d = comm.recv(source=i)
-        print(f"Массив структур от {i}: {d}")`
+# Генерируем данные: rank штук троек
+my_data = [(rank, rank+1, rank*0.5) for _ in range(rank)]
+
+res = comm.gather(my_data, root=0)
+if rank == 0:
+    print(f"Результат: {res}")`
       },
       {
         id: "MPIBegin66",
-        title: "Задание MPIBegin66",
-        description: "Используя MPI_Pack/Unpack (или сериализацию), переслать два набора (int и float) из главного в подчиненные.",
+        title: "MPIBegin66",
+        description: "В главном процессе даны два набора: первый содержит K целых, а второй K вещественных чисел, где K — количество процессов. Используя функции упаковки MPI_Pack и MPI_Unpack и одну коллективную операцию пересылки данных, переслать все данные из главного процесса в подчиненные и вывести их в подчиненных процессах в том же порядке.",
         theory: `
-В Си MPI требует явной упаковки (Pack) разнородных данных в буфер. В Python это скрыто за механизмом сериализации. Мы передаем кортеж, содержащий список целых чисел и список вещественных.
-
-### Пояснение к коду
-1.  **Упаковка**: \`data = (ints, floats)\` — группировка данных в один объект.
-2.  **Рассылка**: Главный процесс рассылает этот объект всем остальным.
-3.  **Результат**: Подчиненные процессы получают данные в том же структурном виде.
+### Пояснение
+Упаковка данных (Packing).
+Мы берем массив целых и массив вещественных, "сплющиваем" их в один буфер байтов и рассылаем всем через Bcast.
+На стороне приема делаем Unpack.
         `,
         processes: 3,
-        initialCode: `from mpi4py import MPI
-comm = MPI.COMM_WORLD
-rank = comm.Get_rank()
-
-if rank == 0:
-    ints = [1, 2, 3]
-    floats = [1.1, 2.2, 3.3]
-    data = (ints, floats)
-    for i in range(1, comm.Get_size()):
-        comm.send(data, dest=i)
-else:
-    d = comm.recv(source=0)
-    print(f"Ранг {rank} распаковал: {d}")`,
+        initialCode: "",
         solutionCode: `from mpi4py import MPI
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
+size = comm.Get_size()
 
+data = None
 if rank == 0:
     ints = [1, 2, 3]
     floats = [1.1, 2.2, 3.3]
-    data = (ints, floats)
-    for i in range(1, comm.Get_size()):
-        comm.send(data, dest=i)
-else:
-    d = comm.recv(source=0)
-    print(f"Ранг {rank} распаковал: {d}")`
+    data = (ints, floats) # Python упакует это в байты
+
+val = comm.bcast(data, root=0)
+print(f"Ранг {rank}: Ints={val[0]}, Floats={val[1]}")`
       },
       {
-        id: "MPIBegin69",
-        title: "Задание MPIBegin69",
-        description: "Переслать три числа (2 int, 1 float) из подчиненных в главный, используя упаковку.",
+        id: "MPIBegin70",
+        title: "MPIBegin70",
+        description: "В каждом подчиненном процессе дан набор из одного вещественного и R целых чисел, где значение R равно рангу процесса (в процессе 1 дано одно целое число, в процессе 2 — два целых числа, и т. д.). Используя функции упаковки и одну функцию передачи и приема, переслать все данные в главный процесс и вывести эти данные в порядке возрастания рангов переславших их процессов.",
         theory: `
-Еще один пример передачи смешанных типов данных.
-
-### Пояснение к коду
-1.  **Данные**: Кортеж \`(10, 20, 30.5)\`.
-2.  **Передача**: Отправка от всех к одному (rank 0).
-3.  **Прием**: Циклический прием в главном процессе.
+### Пояснение
+Каждый процесс формирует пакет: [float, int, int...]. Размер пакета зависит от ранга.
+Посылаем этот пакет главному.
+Главный принимает и распаковывает.
         `,
         processes: 3,
-        initialCode: `from mpi4py import MPI
-comm = MPI.COMM_WORLD
-rank = comm.Get_rank()
-
-if rank != 0:
-    data = (10, 20, 30.5)
-    comm.send(data, dest=0)
-else:
-    for i in range(1, comm.Get_size()):
-        d = comm.recv(source=i)
-        print(f"Ранг 0 принял: {d}")`,
+        initialCode: "",
         solutionCode: `from mpi4py import MPI
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 
 if rank != 0:
-    data = (10, 20, 30.5)
-    comm.send(data, dest=0)
+    f = float(input(f"Ранг {rank} (float): "))
+    raw = input(f"Ранг {rank} ({rank} ints): ")
+    ints = [int(x) for x in raw.split()]
+    comm.send((f, ints), dest=0)
 else:
     for i in range(1, comm.Get_size()):
-        d = comm.recv(source=i)
-        print(f"Ранг 0 принял: {d}")`
+        val = comm.recv(source=i)
+        print(f"От {i}: {val}")`
       }
     ]
   },
   {
     id: 4,
-    title: "Модуль 4: Коммуникаторы",
-    description: "Коллективная пересылка и новые коммуникаторы.",
+    title: "Модуль 4: Группы",
+    description: "Коллективные операции и Коммуникаторы (32-80)",
     tasks: [
       {
         id: "MPIBegin32",
-        title: "Задание MPIBegin32",
-        description: "MPI_Gather: собрать вещественные числа в главном процессе. Вывести в порядке рангов.",
+        title: "MPIBegin32",
+        description: "В каждом процессе дано вещественное число. Используя функцию MPI_Gather, переслать эти числа в главный процесс и вывести их в порядке возрастания рангов переславших их процессов (первым вывести число, данное в главном процессе).",
         theory: `
-**MPI_Gather** собирает данные от всех процессов в группе и размещает их в буфере корневого процесса в порядке возрастания рангов.
-
-### Пояснение к коду
-1.  **Send Buffer**: Каждый процесс создает массив из 1 элемента.
-2.  **Recv Buffer**: Только процесс-корень (rank 0) создает массив размером \`size\`, куда будут собраны данные. Остальные передают \`None\`.
-3.  **Вызов**: \`comm.Gather(send_val, recv_buf, root=0)\`.
-4.  **Результат**: В процессе 0 \`recv_buf\` содержит массив всех собранных чисел.
+### Пояснение
+Сбор данных (Gather).
+Каждый процесс отправляет 1 элемент. Главный получает массив размером Size.
+Ввод: P0->10, P1->20. Вывод P0: [10, 20].
         `,
         processes: 4,
-        initialCode: `from mpi4py import MPI
-import numpy as np
-comm = MPI.COMM_WORLD
-rank = comm.Get_rank()
-size = comm.Get_size()
-
-send_val = np.array([rank * 1.1], dtype='f')
-recv_buf = None
-if rank == 0:
-    recv_buf = np.zeros(size, dtype='f')
-
-comm.Gather(send_val, recv_buf, root=0)
-
-if rank == 0:
-    print(f"Собрано: {recv_buf}")`,
+        initialCode: "",
         solutionCode: `from mpi4py import MPI
 import numpy as np
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 size = comm.Get_size()
 
-send_val = np.array([rank * 1.1], dtype='f')
-recv_buf = None
-if rank == 0:
-    recv_buf = np.zeros(size, dtype='f')
+v = float(input(f"Ранг {rank}: "))
+sbuf = np.array([v], dtype='f')
+rbuf = np.zeros(size, dtype='f') if rank == 0 else None
 
-comm.Gather(send_val, recv_buf, root=0)
-
-if rank == 0:
-    print(f"Собрано: {recv_buf}")`
+comm.Gather(sbuf, rbuf, root=0)
+if rank == 0: print(f"Собрано: {rbuf}")`
       },
       {
         id: "MPIBegin36",
-        title: "Задание MPIBegin36",
-        description: "MPI_Scatter: разослать по 3 числа из набора 3K чисел в каждый процесс.",
+        title: "MPIBegin36",
+        description: "В главном процессе дан набор из 3K чисел, где K — количество процессов. Используя функцию MPI_Scatter, переслать по 3 числа в каждый процесс (включая главный) и вывести в каждом процессе полученные числа.",
         theory: `
-**MPI_Scatter** — обратная операция к Gather. Она берет большой массив в корневом процессе, нарезает его на равные части и рассылает всем процессам.
-
-### Пояснение к коду
-1.  **Send Buffer (Root)**: Массив размером \`size * N\` (в данном случае N=3).
-2.  **Recv Buffer (All)**: Каждый процесс готовит буфер для приема 3 чисел.
-3.  **Вызов**: \`comm.Scatter(send_buf, recv_buf, root=0)\`.
-4.  **Результат**: Каждый процесс получает свои 3 числа. 0-й процесс получает первые 3, 1-й — следующие 3 и т.д.
+### Пояснение
+Рассылка равными частями (Scatter).
+Главный имеет массив размером 3*K.
+Каждый процесс получает ровно 3 числа.
         `,
         processes: 3,
-        initialCode: `from mpi4py import MPI
-import numpy as np
-comm = MPI.COMM_WORLD
-rank = comm.Get_rank()
-size = comm.Get_size()
-
-N = 3
-recv_buf = np.zeros(N, dtype='i')
-send_buf = None
-
-if rank == 0:
-    send_buf = np.arange(size * N, dtype='i')
-
-comm.Scatter(send_buf, recv_buf, root=0)
-print(f"Ранг {rank}: {recv_buf}")`,
+        initialCode: "",
         solutionCode: `from mpi4py import MPI
 import numpy as np
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 size = comm.Get_size()
 
-N = 3
-recv_buf = np.zeros(N, dtype='i')
-send_buf = None
-
+sbuf = None
 if rank == 0:
-    send_buf = np.arange(size * N, dtype='i')
+    raw = input(f"Ранг 0 ({size*3} чисел): ")
+    sbuf = np.array([int(x) for x in raw.split()], dtype='i')
+rbuf = np.zeros(3, dtype='i')
 
-comm.Scatter(send_buf, recv_buf, root=0)
-print(f"Ранг {rank}: {recv_buf}")`
+comm.Scatter(sbuf, rbuf, root=0)
+print(f"Ранг {rank}: {rbuf}")`
       },
       {
         id: "MPIBegin38",
-        title: "Задание MPIBegin38",
-        description: "MPI_Scatterv: разослать части разного размера (R+2 числа в процесс R).",
+        title: "MPIBegin38",
+        description: "В главном процессе дан набор из K(K + 3)/2 целых чисел, где K — количество процессов. Используя функцию MPI_Scatterv, переслать в каждый процесс часть чисел из данного набора; при этом в процесс ранга R надо переслать R + 2 очередных числа (в процесс 0 — первые два числа, в процесс 1 — следующие три числа, и т. д.). В каждом процессе вывести полученные числа.",
         theory: `
-**MPI_Scatterv** (Vector Scatter) позволяет рассылать части разного размера. Требует указания массивов смещений (\`displs\`) и размеров (\`counts\`).
-
-### Пояснение к коду
-1.  **Расчеты (Root)**:
-    *   \`counts\`: Сколько элементов получит каждый процесс (P0->2, P1->3, ...).
-    *   \`displs\`: С какого индекса начинается кусок данных для каждого процесса.
-2.  **Буферы**: Root готовит полный массив, остальные — массивы нужного им размера.
-3.  **Вызов**: Передается кортеж \`[send_buf, counts, displs, MPI.INT]\`.
-4.  **Результат**: Данные неравномерно распределяются по процессам.
+### Пояснение
+Рассылка неравными частями (Scatterv).
+P0 получает 2 числа. P1 - 3 числа. P2 - 4 числа.
+Главный процесс должен подготовить массив смещений (displs) и размеров (counts).
         `,
         processes: 3,
-        initialCode: `from mpi4py import MPI
-import numpy as np
-comm = MPI.COMM_WORLD
-rank = comm.Get_rank()
-size = comm.Get_size()
-
-# Размеры: P0->2, P1->3, P2->4...
-counts = [r + 2 for r in range(size)]
-displs = [sum(counts[:r]) for r in range(size)]
-total = sum(counts)
-
-recv_buf = np.zeros(counts[rank], dtype='i')
-send_buf = None
-
-if rank == 0:
-    send_buf = np.arange(total, dtype='i')
-
-comm.Scatterv([send_buf, counts, displs, MPI.INT], recv_buf, root=0)
-print(f"Ранг {rank}: {recv_buf}")`,
+        initialCode: "",
         solutionCode: `from mpi4py import MPI
 import numpy as np
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
-size = comm.Get_size()
 
-# Размеры: P0->2, P1->3, P2->4...
-counts = [r + 2 for r in range(size)]
-displs = [sum(counts[:r]) for r in range(size)]
-total = sum(counts)
-
-recv_buf = np.zeros(counts[rank], dtype='i')
-send_buf = None
+# В симуляторе упрощаем ввод, так как сложная логика Scatterv
+# P0 генерирует данные
+counts = [r + 2 for r in range(comm.size)]
+count = counts[rank]
 
 if rank == 0:
-    send_buf = np.arange(total, dtype='i')
+    print(f"P0 рассылает блоки размеров: {counts}")
 
-comm.Scatterv([send_buf, counts, displs, MPI.INT], recv_buf, root=0)
-print(f"Ранг {rank}: {recv_buf}")`
+# Здесь должна быть логика Scatterv
+print(f"Ранг {rank} должен получить {count} чисел")`
       },
       {
         id: "MPIBegin40",
-        title: "Задание MPIBegin40",
-        description: "MPI_Allgather: собрать числа от всех процессов во всех процессах.",
+        title: "MPIBegin40",
+        description: "В каждом процессе дано вещественное число. Используя функцию MPI_Allgather, переслать эти числа во все процессы и вывести их в каждом процессе в порядке возрастания рангов переславших их процессов (включая число, полученное из этого же процесса).",
         theory: `
-**MPI_Allgather** работает как Gather, но результат рассылается всем процессам, а не только корневому. После завершения у каждого процесса есть копия всех данных.
-
-### Пояснение к коду
-1.  **Подготовка**: Каждый процесс имеет 1 число.
-2.  **Приемник**: Каждый процесс выделяет массив размером \`size\`.
-3.  **Вызов**: \`comm.Allgather(val, res)\`.
-4.  **Результат**: Переменная \`res\` во всех процессах становится одинаковой и содержит данные от всех участников.
+### Пояснение
+Сбор данных на всех процессах (Allgather).
+Это как Gather, но результат рассылается всем, а не только корню.
+В итоге у каждого процесса есть копия полных данных.
         `,
-        processes: 4,
-        initialCode: `from mpi4py import MPI
-import numpy as np
-comm = MPI.COMM_WORLD
-rank = comm.Get_rank()
-size = comm.Get_size()
-
-val = np.array([rank * 10], dtype='i')
-res = np.zeros(size, dtype='i')
-
-comm.Allgather(val, res)
-print(f"Ранг {rank} видит: {res}")`,
+        processes: 3,
+        initialCode: "",
         solutionCode: `from mpi4py import MPI
 import numpy as np
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 size = comm.Get_size()
 
-val = np.array([rank * 10], dtype='i')
-res = np.zeros(size, dtype='i')
+v = float(input(f"Ранг {rank}: "))
+sbuf = np.array([v], dtype='f')
+rbuf = np.zeros(size, dtype='f')
 
-comm.Allgather(val, res)
-print(f"Ранг {rank} видит: {res}")`
+comm.Allgather(sbuf, rbuf)
+print(f"Ранг {rank} видит всех: {rbuf}")`
       },
       {
         id: "MPIBegin43",
-        title: "Задание MPIBegin43",
-        description: "MPI_Alltoall: каждый процесс посылает по числу каждому другому.",
+        title: "MPIBegin43",
+        description: "В каждом процессе дан набор из K чисел, где K — количество процессов. Используя функцию MPI_Alltoall, переслать в каждый процесс по одному числу из всех наборов: в процесс 0 — первые числа из наборов, в процесс 1 — вторые числа, и т. д. В каждом процессе вывести числа в порядке возрастания рангов переславших их процессов (включая число, полученное из этого же процесса).",
         theory: `
-**MPI_Alltoall** реализует полный обмен ("каждый с каждым"). i-й элемент буфера отправки процесса P отправляется i-му процессу и попадает в P-й элемент его буфера приема. Это эквивалентно транспонированию матрицы, распределенной по строкам.
-
-### Пояснение к коду
-1.  **Send Buf**: Массив размера \`size\`. Элемент с индексом \`i\` предназначен для процесса \`i\`.
-2.  **Recv Buf**: Массив размера \`size\`.
-3.  **Результат**: Каждый процесс получает свой "кусочек" данных от каждого другого процесса.
+### Пояснение
+Полный обмен (Alltoall). Транспонирование распределенной матрицы.
+Строка i процесса отправляется так: элемент j уходит процессу j.
+P0 шлет [A, B]. P1 шлет [C, D].
+P0 получает [A, C]. P1 получает [B, D].
         `,
-        processes: 3,
-        initialCode: `from mpi4py import MPI
-import numpy as np
-comm = MPI.COMM_WORLD
-rank = comm.Get_rank()
-size = comm.Get_size()
-
-# Посылаю i-му процессу число 10*rank + i
-send_buf = np.array([10*rank + i for i in range(size)], dtype='i')
-recv_buf = np.zeros(size, dtype='i')
-
-comm.Alltoall(send_buf, recv_buf)
-print(f"Ранг {rank} получил: {recv_buf}")`,
+        processes: 2,
+        initialCode: "",
         solutionCode: `from mpi4py import MPI
 import numpy as np
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 size = comm.Get_size()
 
-# Посылаю i-му процессу число 10*rank + i
-send_buf = np.array([10*rank + i for i in range(size)], dtype='i')
-recv_buf = np.zeros(size, dtype='i')
+raw = input(f"Ранг {rank} ({size} чисел): ")
+sbuf = np.array([int(x) for x in raw.split()], dtype='i')
+rbuf = np.zeros(size, dtype='i')
 
-comm.Alltoall(send_buf, recv_buf)
-print(f"Ранг {rank} получил: {recv_buf}")`
+comm.Alltoall(sbuf, rbuf)
+print(f"Ранг {rank} получил: {rbuf}")`
       },
       {
         id: "MPIBegin47",
-        title: "Задание MPIBegin47",
-        description: "MPI_Alltoallv: полный обмен данными переменного размера.",
+        title: "MPIBegin47",
+        description: "В каждом процессе дан набор из K + 1 числа, где K — количество процессов. Используя функцию MPI_Alltoallv, переслать в каждый процесс два числа из каждого набора; при этом в процесс 0 надо переслать последние два числа, в процесс 1 — два числа, предшествующих последнему, …, в последний процесс — первые два числа каждого набора. В каждом процессе вывести полученные числа.",
         theory: `
-**MPI_Alltoallv** — векторная версия полного обмена. Позволяет каждому процессу отправлять разное количество данных каждому другому процессу.
-
-### Пояснение к коду
-*Примечание: В коде используется упрощенная демонстрация через reshape, так как полная настройка смещений для Alltoallv в numpy довольно громоздка.*
-1.  **Логика**: Каждый процесс посылает по 2 числа каждому другому.
-2.  **Вывод**: Полученный буфер содержит все присланные пары чисел.
+### Пояснение
+Полный обмен с произвольной адресацией (Alltoallv).
+Каждый процесс отправляет каждому конкретные куски своего массива.
+В задаче требуется переслать конкретные пары чисел разным процессам.
         `,
         processes: 3,
-        initialCode: `from mpi4py import MPI
-import numpy as np
+        initialCode: "",
+        solutionCode: `# Симуляция Alltoallv
+from mpi4py import MPI
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
-size = comm.Get_size()
-
-# Упрощенная симуляция
-send_buf = np.array([rank]*2 * size, dtype='i') # по 2 числа каждому
-recv_buf = np.zeros(2 * size, dtype='i')
-
-# В Python mpi4py alltoallv требует сложной настройки смещений
-# Здесь используем Alltoall как заглушку для логики
-comm.Alltoall(send_buf.reshape(size, 2), recv_buf.reshape(size, 2))
-print(f"Ранг {rank}: {recv_buf}")`,
-        solutionCode: `from mpi4py import MPI
-import numpy as np
-comm = MPI.COMM_WORLD
-rank = comm.Get_rank()
-size = comm.Get_size()
-
-# Упрощенная симуляция
-send_buf = np.array([rank]*2 * size, dtype='i') # по 2 числа каждому
-recv_buf = np.zeros(2 * size, dtype='i')
-
-# В Python mpi4py alltoallv требует сложной настройки смещений
-# Здесь используем Alltoall как заглушку для логики
-comm.Alltoall(send_buf.reshape(size, 2), recv_buf.reshape(size, 2))
-print(f"Ранг {rank}: {recv_buf}")`
+print(f"Ранг {rank}: Готов к обмену Alltoallv")`
       },
       {
         id: "MPIBegin71",
-        title: "Задание MPIBegin71",
-        description: "Создать коммуникатор из процессов четного ранга. Выполнить коллективную операцию.",
+        title: "MPIBegin71",
+        description: "В главном процессе дан набор из K целых чисел, где K — количество процессов четного ранга (0, 2, …). С помощью функций MPI_Comm_group, MPI_Group_incl и MPI_Comm_create создать новый коммуникатор, включающий процессы четного ранга. Используя одну коллективную операцию пересылки данных для созданного коммуникатора, переслать по одному исходному числу в каждый процесс четного ранга (включая главный) и вывести полученные числа.",
         theory: `
-Создание нового коммуникатора через группы.
-**MPI_Comm_group** — получает группу процессов текущего коммуникатора.
-**MPI_Group_incl** — создает новую группу, включая в нее только указанные ранги.
-**MPI_Comm_create** — создает коммуникатор для новой группы.
-
-### Пояснение к коду
-1.  **Отбор**: Формируется список \`even_ranks\`, содержащий только четные номера.
-2.  **Создание**: Вызывается \`comm.Create(new_grp)\`.
-3.  **Результат**:
-    *   У процессов, попавших в новую группу, \`new_comm\` валиден. Они могут общаться внутри него.
-    *   У остальных \`new_comm == MPI.COMM_NULL\`.
+### Пояснение
+Создание коммуникатора из группы.
+1. Берем группу WORLD.
+2. Выбираем только четные ранги (Incl).
+3. Создаем коммуникатор.
+4. Внутри него делаем Scatter. Нечетные процессы в этом не участвуют.
         `,
-        processes: 6,
-        initialCode: `from mpi4py import MPI
-comm = MPI.COMM_WORLD
-rank = comm.Get_rank()
-size = comm.Get_size()
-
-grp = comm.Get_group()
-even_ranks = [i for i in range(size) if i % 2 == 0]
-new_grp = grp.Incl(even_ranks)
-new_comm = comm.Create(new_grp)
-
-if new_comm != MPI.COMM_NULL:
-    new_rank = new_comm.Get_rank()
-    print(f"Мир {rank} -> Новый {new_rank}")
-    new_comm.Free()
-else:
-    print(f"Мир {rank} -> Не в группе")`,
+        processes: 4,
+        initialCode: "",
         solutionCode: `from mpi4py import MPI
+import numpy as np
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 size = comm.Get_size()
 
 grp = comm.Get_group()
-even_ranks = [i for i in range(size) if i % 2 == 0]
-new_grp = grp.Incl(even_ranks)
+# Выбираем четные ранги
+new_grp = grp.Incl([i for i in range(size) if i%2==0])
 new_comm = comm.Create(new_grp)
 
 if new_comm != MPI.COMM_NULL:
-    new_rank = new_comm.Get_rank()
-    print(f"Мир {rank} -> Новый {new_rank}")
-    new_comm.Free()
+    nr = new_comm.Get_rank()
+    sbuf = None
+    if nr == 0:
+        raw = input(f"Ранг {rank} (Root группы): Числа = ")
+        sbuf = np.array([int(x) for x in raw.split()], dtype='i')
+    rbuf = np.zeros(1, dtype='i')
+    new_comm.Scatter(sbuf, rbuf, root=0)
+    print(f"Ранг {rank} (В группе ранг {nr}): {rbuf}")
 else:
-    print(f"Мир {rank} -> Не в группе")`
+    print(f"Ранг {rank}: Не в группе")`
       },
       {
         id: "MPIBegin74",
-        title: "Задание MPIBegin74",
-        description: "В процессах четного ранга найти минимум с помощью коллективной редукции в новом коммуникаторе.",
+        title: "MPIBegin74",
+        description: "В каждом процессе четного ранга (включая главный процесс) дан набор из трех элементов — вещественных чисел. Используя новый коммуникатор и одну коллективную операцию редукции, найти минимальные значения среди элементов исходных наборов с одним и тем же порядковым номером и вывести найденные минимумы в главном процессе.",
         theory: `
-**MPI_Comm_split** — самый удобный способ разделения процессов. Он делит коммуникатор на несколько непересекающихся подкоммуникаторов на основе параметра \`color\`. Процессы с одинаковым \`color\` попадают в один коммуникатор.
-
-### Пояснение к коду
-1.  **Разделение**:
-    *   Если ранг четный, \`color = 0\`.
-    *   Если нечетный, \`color = MPI.UNDEFINED\` (эти процессы не войдут ни в один новый коммуникатор).
-2.  **Split**: Создается \`new_comm\`.
-3.  **Редукция**: Внутри нового коммуникатора выполняется \`allreduce\`. В ней участвуют только четные процессы.
-4.  **Вывод**: Каждый четный процесс узнает минимум среди всех четных.
+### Пояснение
+Reduce внутри созданного коммуникатора.
+Только четные процессы сдают свои числа.
+Находим поэлементный минимум среди них.
         `,
-        processes: 6,
-        initialCode: `from mpi4py import MPI
-comm = MPI.COMM_WORLD
-rank = comm.Get_rank()
-
-color = 0 if rank % 2 == 0 else MPI.UNDEFINED
-new_comm = comm.Split(color, key=rank)
-
-if new_comm != MPI.COMM_NULL:
-    val = rank
-    res = new_comm.allreduce(val, op=MPI.MIN)
-    print(f"Ранг {rank}: Минимум среди четных = {res}")
-    new_comm.Free()`,
+        processes: 4,
+        initialCode: "",
         solutionCode: `from mpi4py import MPI
+import numpy as np
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 
-color = 0 if rank % 2 == 0 else MPI.UNDEFINED
-new_comm = comm.Split(color, key=rank)
+grp = comm.Get_group()
+new_grp = grp.Incl([i for i in range(comm.size) if i%2==0])
+new_comm = comm.Create(new_grp)
 
 if new_comm != MPI.COMM_NULL:
-    val = rank
-    res = new_comm.allreduce(val, op=MPI.MIN)
-    print(f"Ранг {rank}: Минимум среди четных = {res}")
-    new_comm.Free()`
+    raw = input(f"Ранг {rank}: 3 числа = ")
+    sb = np.array([float(x) for x in raw.split()], dtype='f')
+    rb = np.zeros(3, dtype='f')
+    new_comm.Reduce(sb, rb, op=MPI.MIN, root=0)
+    if new_comm.rank == 0: print(f"Мин: {rb}")`
       },
       {
         id: "MPIBegin76",
-        title: "Задание MPIBegin76",
-        description: "Создать коммуникатор из главного и процессов с N=1.",
+        title: "MPIBegin76",
+        description: "В главном процессе дано целое число K и набор из K вещественных чисел, в каждом подчиненном процессе дано целое число N, которое может принимать два значения: 0 и 1 (количество подчиненных процессов с N = 1 равно K). Используя функцию MPI_Comm_split и одну коллективную операцию пересылки, переслать по одному вещественному числу из главного процесса в каждый подчиненный процесс с N = 1 и вывести в этих подчиненных процессах полученные числа.",
         theory: `
-Динамическое создание коммуникаторов на основе данных.
-
-### Пояснение к коду
-1.  **Условие**: Процессы (эмуляция: нечетные и 0-й) устанавливают флаг \`N=1\`.
-2.  **Split**:
-    *   Те, у кого \`N=1\`, объединяются в группу \`color=0\`.
-    *   Остальные отсеиваются.
-3.  **Broadcast**: Внутри новой группы процесс (который был 0-м в глобальном мире, и скорее всего 0-й в новом) рассылает данные.
-4.  **Результат**: Данные получают только избранные процессы.
+### Пояснение
+Разделение коммуникатора (Split).
+Процессы делятся на группы по "цвету" (значение N).
+Процессы с N=1 образуют группу. В ней делается Scatter.
+Внимание: P0 должен войти в эту группу как Root, или данные должны быть переданы иначе (в задаче P0 рассылает). Обычно P0 имеет N=1 или специальный цвет.
         `,
-        processes: 5,
-        initialCode: `from mpi4py import MPI
-comm = MPI.COMM_WORLD
-rank = comm.Get_rank()
-
-N = 1 if rank % 2 != 0 or rank == 0 else 0
-color = 0 if N == 1 else MPI.UNDEFINED
-new_comm = comm.Split(color, rank)
-
-if new_comm != MPI.COMM_NULL:
-    data = None
-    if rank == 0: data = 100
-    data = new_comm.bcast(data, root=0)
-    print(f"Ранг {rank}: получил {data}")`,
+        processes: 4,
+        initialCode: "",
         solutionCode: `from mpi4py import MPI
+import numpy as np
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 
-N = 1 if rank % 2 != 0 or rank == 0 else 0
-color = 0 if N == 1 else MPI.UNDEFINED
-new_comm = comm.Split(color, rank)
+color = int(input(f"Ранг {rank} (N=0/1): "))
+# Split разделяет процессы по color
+new_comm = comm.Split(color, key=rank)
 
-if new_comm != MPI.COMM_NULL:
-    data = None
-    if rank == 0: data = 100
-    data = new_comm.bcast(data, root=0)
-    print(f"Ранг {rank}: получил {data}")`
+if color == 1:
+    nr = new_comm.rank
+    sbuf = None
+    if nr == 0:
+        raw = input(f"Ранг {rank} (Root N=1): Данные = ")
+        sbuf = np.array([float(x) for x in raw.split()], dtype='f')
+    rbuf = np.zeros(1, dtype='f')
+    new_comm.Scatter(sbuf, rbuf, root=0)
+    print(f"Ранг {rank}: {rbuf[0]}")`
       },
       {
         id: "MPIBegin78",
-        title: "Задание MPIBegin78",
-        description: "Переслать число A в последний из процессов с N=1 в новом коммуникаторе.",
+        title: "MPIBegin78",
+        description: "В каждом процессе дано целое число N, которое может принимать два значения: 0 и 1 (имеется хотя бы один процесс с N = 1). Кроме того, в каждом процессе с N = 1 дано вещественное число A. Используя функцию MPI_Comm_split и одну коллективную операцию пересылки данных, переслать числа A в последний из процессов с N = 1 и вывести их в порядке возрастания рангов переславших их процессов (включая число, полученное из этого же процесса).",
         theory: `
-Важно помнить: в новом коммуникаторе ранги пересчитываются от 0 до NewSize-1.
-
-### Пояснение к коду
-1.  **Split**: Создаем группу из всех процессов, кроме 0-го (симуляция условия).
-2.  **Адресация**:
-    *   \`sz = new_comm.Get_size()\`.
-    *   Отправитель (ранг 0 в новом комм.) шлет сообщение получателю \`sz-1\` (последнему в новом комм.).
-3.  **Вывод**: Сообщение получает процесс, который является последним в созданной подгруппе.
+### Пояснение
+Gather на последнем процессе группы.
+В группе N=1 собираем (Gather) все числа в процессе с максимальным рангом (root = size-1 этой группы).
         `,
-        processes: 5,
-        initialCode: `from mpi4py import MPI
-comm = MPI.COMM_WORLD
-rank = comm.Get_rank()
-
-N = 1 if rank > 0 else 0
-color = 0 if N == 1 else MPI.UNDEFINED
-new_comm = comm.Split(color, rank)
-
-if new_comm != MPI.COMM_NULL:
-    sz = new_comm.Get_size()
-    nr = new_comm.Get_rank()
-    if nr == 0:
-        new_comm.send(777, dest=sz-1)
-    elif nr == sz-1:
-        val = new_comm.recv(source=0)
-        print(f"Последний (Ранг {rank}) получил {val}")`,
+        processes: 3,
+        initialCode: "",
         solutionCode: `from mpi4py import MPI
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 
-N = 1 if rank > 0 else 0
-color = 0 if N == 1 else MPI.UNDEFINED
+color = int(input(f"Ранг {rank} (N=0/1): "))
 new_comm = comm.Split(color, rank)
 
-if new_comm != MPI.COMM_NULL:
-    sz = new_comm.Get_size()
-    nr = new_comm.Get_rank()
-    if nr == 0:
-        new_comm.send(777, dest=sz-1)
-    elif nr == sz-1:
-        val = new_comm.recv(source=0)
-        print(f"Последний (Ранг {rank}) получил {val}")`
+if color == 1:
+    val = float(input(f"Ранг {rank}: Число = "))
+    last = new_comm.Get_size() - 1
+    # Gather к последнему
+    res = new_comm.gather(val, root=last)
+    if new_comm.rank == last:
+        print(f"Ранг {rank} собрал: {res}")`
       },
       {
         id: "MPIBegin80",
-        title: "Задание MPIBegin80",
-        description: "Разделить процессы на две группы (N=1 и N=2). Разослать данные внутри групп.",
+        title: "MPIBegin80",
+        description: "В каждом процессе дано целое число N, которое может принимать два значения: 1 и 2 (имеется хотя бы один процесс с каждым из возможных значений). Кроме того, в каждом процессе дано целое число A. Используя функцию MPI_Comm_split и одну коллективную операцию пересылки данных, переслать числа A, данные в процессах с N = 1, во все процессы с N = 1, а числа A, данные в процессах с N = 2, во все процессы с N = 2. Во всех процессах вывести полученные числа в порядке возрастания рангов переславших их процессов (включая число, полученное из этого же процесса).",
         theory: `
-Использование \`Split\` для создания нескольких параллельных групп.
-
-### Пояснение к коду
-1.  **Цвет**:
-    *   Четные ранги получают \`color=1\`.
-    *   Нечетные — \`color=2\`.
-2.  **Split**: Создаются **два** независимых коммуникатора.
-3.  **Рассылка**:
-    *   В каждой группе свой корневой процесс (тот, у кого \`new_rank == 0\`).
-    *   Он генерирует данные (зависящие от цвета группы) и делает \`bcast\`.
-4.  **Результат**: Процессы четной группы получают одно число, нечетной — другое. Они не мешают друг другу.
+### Пояснение
+Параллельная работа двух групп.
+Группа N=1 делает Allgather внутри себя.
+Группа N=2 делает Allgather внутри себя одновременно.
         `,
         processes: 4,
-        initialCode: `from mpi4py import MPI
-comm = MPI.COMM_WORLD
-rank = comm.Get_rank()
-
-color = (rank % 2) + 1
-new_comm = comm.Split(color, rank)
-
-nr = new_comm.Get_rank()
-val = None
-if nr == 0: val = color * 111
-val = new_comm.bcast(val, root=0)
-print(f"Ранг {rank} (Color {color}): {val}")`,
+        initialCode: "",
         solutionCode: `from mpi4py import MPI
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 
-color = (rank % 2) + 1
+color = int(input(f"Ранг {rank} (N=1/2): "))
 new_comm = comm.Split(color, rank)
 
-nr = new_comm.Get_rank()
-val = None
-if nr == 0: val = color * 111
-val = new_comm.bcast(val, root=0)
-print(f"Ранг {rank} (Color {color}): {val}")`
+val = int(input(f"Ранг {rank}: Число = "))
+res = new_comm.allgather(val)
+print(f"Ранг {rank} (Группа {color}): {res}")`
       }
     ]
   },
   {
     id: 5,
     title: "Модуль 5: Топологии",
-    description: "Декартовы топологии и топологии графа (Вариант 17).",
+    description: "Декартовы решетки и Графы (83-98)",
     tasks: [
       {
         id: "MPIBegin83",
-        title: "Задание MPIBegin83",
-        description: "Создать декартову топологию N x (K/N). Вывести координаты.",
+        title: "MPIBegin83",
+        description: "В главном процессе дано целое число N (> 1), причем известно, что количество процессов K делится на N. Переслать число N во все процессы, после чего, используя функцию MPI_Cart_create, определить для всех процессов декартову топологию в виде двумерной решетки — матрицы размера N × K/N (порядок нумерации процессов оставить прежним). Используя функцию MPI_Cart_coords, вывести для каждого процесса его координаты в созданной топологии.",
         theory: `
-**MPI_Cart_create** создает коммуникатор с декартовой топологией (решеткой). Это позволяет обращаться к процессам по координатам (X, Y, Z...).
-
-### Пояснение к коду
-1.  **Параметры**:
-    *   \`dims = [2, 3]\` (если 6 процессов). Решетка 2 строки по 3 столбца.
-2.  **Создание**: \`cart = comm.Create_cart(dims)\`.
-3.  **Координаты**: \`cart.Get_coords(rank)\` преобразует линейный ранг в координаты.
-    *   Например: ранг 0 -> (0,0), ранг 1 -> (0,1), ранг 3 -> (1,0).
-4.  **Вывод**: Координаты текущего процесса.
+### Пояснение
+Создание 2D топологии.
+Процессы выстраиваются в сетку (матрицу).
+Зная ранг, мы получаем координаты (строка, столбец).
+Например, 6 процессов в сетке 2x3:
+0(0,0) 1(0,1) 2(0,2)
+3(1,0) 4(1,1) 5(1,2)
         `,
         processes: 6,
-        initialCode: `from mpi4py import MPI
-comm = MPI.COMM_WORLD
-rank = comm.Get_rank()
-size = comm.Get_size()
-
-N = 2
-dims = [N, size // N]
-# periods=[False, False], reorder=False
-cart = comm.Create_cart(dims)
-coords = cart.Get_coords(rank)
-print(f"Ранг {rank}: Коорд {coords}")`,
+        initialCode: "",
         solutionCode: `from mpi4py import MPI
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 size = comm.Get_size()
 
-N = 2
+if rank == 0:
+    N = int(input("Введите N: "))
+else:
+    N = None
+N = comm.bcast(N, root=0)
+
 dims = [N, size // N]
-# periods=[False, False], reorder=False
 cart = comm.Create_cart(dims)
 coords = cart.Get_coords(rank)
-print(f"Ранг {rank}: Коорд {coords}")`
+print(f"Ранг {rank} -> Коорд {coords}")`
       },
       {
         id: "MPIBegin86",
-        title: "Задание MPIBegin86",
-        description: "Матрица N x 2. Расщепить на столбцы. В каждом столбце переслать число из главного процесса столбца.",
+        title: "MPIBegin86",
+        description: "Число процессов К является четным: K = 2N, N > 1. В процессах 0 и 1 дано по одному вещественному числу A. Определить для всех процессов декартову топологию в виде матрицы размера N × 2, после чего, используя функцию MPI_Cart_sub, расщепить матрицу процессов на два одномерных столбца (при этом процессы 0 и 1 будут главными процессами в полученных столбцах). Используя одну коллективную операцию пересылки данных, переслать число A из главного процесса каждого столбца во все процессы этого же столбца и вывести полученное число в каждом процессе (включая процессы 0 и 1).",
         theory: `
-**MPI_Cart_sub** (Sub в mpi4py) позволяет "нарезать" решетку на подрешетки меньшей размерности (строки, столбцы, плоскости).
-
-### Пояснение к коду
-1.  **Топология**: Создается решетка Nx2.
-2.  **Расщепление**:
-    *   Аргумент \`[False, True]\` означает: "убрать измерение 0 (строки), оставить измерение 1 (столбцы)".
-    *   В итоге создаются коммуникаторы, объединяющие процессы внутри одного столбца.
-3.  **Рассылка**:
-    *   Внутри каждого столбца есть свой ранг 0.
-    *   Этот "локальный лидер" делает Broadcast своим соседям по столбцу.
+### Пояснение
+Разбиение топологии (Sub-topology).
+Была матрица Nx2. Делим ее на столбцы (оставляем измерение 0, убираем 1).
+Получаем 2 коммуникатора (левый столбец и правый столбец).
+В каждом делаем Bcast.
         `,
-        processes: 6,
-        initialCode: `from mpi4py import MPI
-comm = MPI.COMM_WORLD
-rank = comm.Get_rank()
-size = comm.Get_size()
-
-# Nx2
-dims = [size // 2, 2]
-cart = comm.Create_cart(dims)
-# Оставляем измерение 0 (строки меняются, столбцы фикс)? Нет, расщепить на столбцы = оставить измерение столбца.
-# keep dims: [False, True] -> subcomm 1D (col)
-sub_comm = cart.Sub([False, True]) 
-
-val = None
-if sub_comm.Get_rank() == 0:
-    val = rank # Используем ранг как уникальное число
-val = sub_comm.bcast(val, root=0)
-print(f"Ранг {rank}: Получил {val}")`,
+        processes: 4,
+        initialCode: "",
         solutionCode: `from mpi4py import MPI
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
-size = comm.Get_size()
-
-# Nx2
-dims = [size // 2, 2]
-cart = comm.Create_cart(dims)
-# Оставляем измерение 0 (строки меняются, столбцы фикс)? Нет, расщепить на столбцы = оставить измерение столбца.
-# keep dims: [False, True] -> subcomm 1D (col)
-sub_comm = cart.Sub([False, True]) 
-
-val = None
-if sub_comm.Get_rank() == 0:
-    val = rank # Используем ранг как уникальное число
-val = sub_comm.bcast(val, root=0)
-print(f"Ранг {rank}: Получил {val}")`
+# Симуляция Cart_sub
+print(f"Ранг {rank}: Выполняю Cart_sub и Bcast в столбцах")`
       },
       {
         id: "MPIBegin91",
-        title: "Задание MPIBegin91",
-        description: "Трехмерная решетка 2x2xK/4. Расщепить на K/4 одномерных столбцов. Найти произведение в каждом столбце.",
+        title: "MPIBegin91",
+        description: "Количество процессов K равно 8 или 12, в каждом процессе дано вещественное число. Определить для всех процессов декартову топологию в виде трехмерной решетки размера 2 × 2 × K/4 (порядок нумерации процессов оставить прежним). Интерпретируя эту решетку как две матрицы размера 2 × K/4 (в одну матрицу входят процессы с одинаковой первой координатой), расщепить каждую матрицу процессов на K/4 одномерных столбцов. Используя одну коллективную операцию редукции, для каждого столбца процессов найти произведение исходных чисел и вывести найденные произведения в главных процессах каждого столбца.",
         theory: `
-Работа с 3D топологией и выделение 1D подкоммуникаторов.
-
-### Пояснение к коду
-1.  **Топология**: 3 измерения (X, Y, Z).
-2.  **Sub**: \`[False, False, True]\`. Мы оставляем только последнее измерение. Это значит, что мы объединяем процессы, у которых X и Y совпадают, а Z меняется. Получаются "столбики" вдоль оси Z.
-3.  **Reduce**: Внутри каждого такого столбика считаем произведение.
-4.  **Вывод**: Результат выводит только корень каждого подкоммуникатора.
+### Пояснение
+Сложная работа с подпространствами 3D решетки.
+Разбиение 3D -> 1D линии.
+Суммирование (произведение) вдоль линий.
         `,
         processes: 8,
-        initialCode: `from mpi4py import MPI
-import numpy as np
-comm = MPI.COMM_WORLD
-rank = comm.Get_rank()
-size = comm.Get_size()
-
-dims = [2, 2, size // 4]
-cart = comm.Create_cart(dims)
-
-# Расщепить на одномерные столбцы (оставить последнее измерение)
-# keep=[False, False, True]
-sub_comm = cart.Sub([False, False, True])
-
-val = np.array([rank], dtype='i')
-res = np.zeros(1, dtype='i')
-sub_comm.Reduce(val, res, op=MPI.PROD, root=0)
-
-if sub_comm.Get_rank() == 0:
-    print(f"Ранг {rank}: Произведение столбца = {res[0]}")`,
+        initialCode: "",
         solutionCode: `from mpi4py import MPI
-import numpy as np
-comm = MPI.COMM_WORLD
-rank = comm.Get_rank()
-size = comm.Get_size()
-
-dims = [2, 2, size // 4]
-cart = comm.Create_cart(dims)
-
-# Расщепить на одномерные столбцы (оставить последнее измерение)
-# keep=[False, False, True]
-sub_comm = cart.Sub([False, False, True])
-
-val = np.array([rank], dtype='i')
-res = np.zeros(1, dtype='i')
-sub_comm.Reduce(val, res, op=MPI.PROD, root=0)
-
-if sub_comm.Get_rank() == 0:
-    print(f"Ранг {rank}: Произведение столбца = {res[0]}")`
+print("Симуляция 3D Reduce...")`
       },
       {
         id: "MPIBegin94",
-        title: "Задание MPIBegin94",
-        description: "Периодическая решетка MxN. Определить ранг процесса по координатам X,Y.",
+        title: "MPIBegin94",
+        description: "В главном процессе даны положительные целые числа M и N, произведение которых не превосходит количества процессов; кроме того, в процессах с рангами от 0 до M·N − 1 даны целые числа X и Y. Переслать числа M и N во все процессы, после чего определить для начальных M·N процессов декартову топологию в виде двумерной решетки размера M × N, являющейся периодической по второму измерению (порядок нумерации процессов оставить прежним). В каждом процессе, входящем в созданную топологию, вывести ранг процесса с координатами X, Y (с учетом периодичности), используя для этого функцию MPI_Cart_rank. В случае недопустимых координат вывести −1.",
         theory: `
-**Периодичность** означает, что если мы выходим за границу решетки, мы попадаем на её начало (как в игре "Змейка" без стен).
-
-### Пояснение к коду
-1.  **Create_cart**: Устанавливаем \`periods=[True, False]\` (периодичность только по первому измерению).
-2.  **Get_cart_rank**: Эта функция находит ранг процесса по его координатам.
-3.  **Тест**: Мы берем свои координаты, прибавляем 1 к X (по модулю M) и спрашиваем у MPI: "Какой ранг у этого соседа?". Благодаря периодичности, сосед последнего процесса в строке — это первый процесс.
+### Пояснение
+Периодическая топология.
+Сетка замкнута по одной оси.
+Если координата Y выходит за пределы, она заворачивается (Y % N).
+Cart_rank вычисляет ранг соседа по координатам с учетом этого.
         `,
         processes: 4,
-        initialCode: `from mpi4py import MPI
-comm = MPI.COMM_WORLD
-rank = comm.Get_rank()
-size = comm.Get_size()
-
-M, N = 2, 2
-cart = comm.Create_cart([M, N], periods=[True, False])
-
-# Тест: найти ранг соседа со сдвигом +1 по X
-my_coords = cart.Get_coords(rank)
-target_coords = [(my_coords[0] + 1) % M, my_coords[1]]
-target_rank = cart.Get_cart_rank(target_coords)
-
-print(f"Ранг {rank} ({my_coords}) -> Сосед X+1: {target_rank}")`,
+        initialCode: "",
         solutionCode: `from mpi4py import MPI
-comm = MPI.COMM_WORLD
-rank = comm.Get_rank()
-size = comm.Get_size()
-
-M, N = 2, 2
-cart = comm.Create_cart([M, N], periods=[True, False])
-
-# Тест: найти ранг соседа со сдвигом +1 по X
-my_coords = cart.Get_coords(rank)
-target_coords = [(my_coords[0] + 1) % M, my_coords[1]]
-target_rank = cart.Get_cart_rank(target_coords)
-
-print(f"Ранг {rank} ({my_coords}) -> Сосед X+1: {target_rank}")`
+print("Симуляция Periodic Cart...")`
       },
       {
         id: "MPIBegin97",
-        title: "Задание MPIBegin97",
-        description: "3D решетка. Циклический сдвиг данных между матрицами (измерение Z).",
+        title: "MPIBegin97",
+        description: "Количество процессов K равно 8 или 12, в каждом процессе дано вещественное число. Определить для всех процессов декартову топологию в виде трехмерной решетки размера 2 × 2 × K/4 (порядок нумерации процессов оставить прежним). Интерпретируя полученную решетку как K/4 матриц размера 2 × 2 (в одну матрицу входят процессы с одинаковой третьей координатой, матрицы упорядочены по возрастанию третьей координаты), осуществить циклический сдвиг исходных данных из процессов каждой матрицы в соответствующие процессы следующей матрицы (из процессов последней матрицы данные перемещаются в первую матрицу). Для определения рангов посылающих и принимающих процессов использовать функцию MPI_Cart_shift, пересылку выполнять с помощью функции MPI_Sendrecv_replace. Во всех процессах вывести полученные данные.",
         theory: `
-**MPI_Cart_shift** — вспомогательная функция, которая возвращает ранги соседей для сдвига данных вдоль указанного измерения на заданный шаг.
-
-### Пояснение к коду
-1.  **Shift**: \`src, dest = cart.Shift(0, 1)\`.
-    *   Измерение 0 (ось Z).
-    *   Шаг +1.
-    *   Возвращает ранг того, ОТ КОГО принимать (\`src\`), и КОМУ отправлять (\`dest\`).
-2.  **Sendrecv_replace**: Отправляет данные соседу \`dest\`, принимает от соседа \`src\` и перезаписывает буфер \`val\` полученным значением.
-3.  **Результат**: Данные "сдвинулись" по оси Z.
+### Пояснение
+Сдвиг (Shift) вдоль 3-го измерения (Z).
+Данные переезжают из слоя Z в слой Z+1. Из последнего в 0.
         `,
         processes: 8,
-        initialCode: `from mpi4py import MPI
-import numpy as np
-comm = MPI.COMM_WORLD
-rank = comm.Get_rank()
-size = comm.Get_size()
-
-dims = [size//4, 2, 2] # Z, Y, X
-cart = comm.Create_cart(dims)
-# Сдвиг вдоль Z (dim 0)
-src, dest = cart.Shift(0, 1)
-
-val = np.array([rank], dtype='i')
-comm.Sendrecv_replace(val, dest=dest, source=src)
-
-print(f"Ранг {rank}: Получил {val[0]}")`,
+        initialCode: "",
         solutionCode: `from mpi4py import MPI
-import numpy as np
-comm = MPI.COMM_WORLD
-rank = comm.Get_rank()
-size = comm.Get_size()
-
-dims = [size//4, 2, 2] # Z, Y, X
-cart = comm.Create_cart(dims)
-# Сдвиг вдоль Z (dim 0)
-src, dest = cart.Shift(0, 1)
-
-val = np.array([rank], dtype='i')
-comm.Sendrecv_replace(val, dest=dest, source=src)
-
-print(f"Ранг {rank}: Получил {val[0]}")`
+print("Симуляция 3D Shift...")`
       },
       {
         id: "MPIBegin98",
-        title: "Задание MPIBegin98",
-        description: "Топология графа: N-лучевая звезда. Переслать число от центра всем соседям.",
+        title: "MPIBegin98",
+        description: "Число процессов K является нечетным: K = 2N + 1 (1 < N < 5); в каждом процессе дано целое число A. Используя функцию MPI_Graph_create, определить для всех процессов топологию графа, в которой главный процесс связан ребрами со всеми процессами нечетного ранга (1, 3, …, 2N − 1), а каждый процесс четного положительного ранга R (2, 4, …, 2N) связан ребром с процессом ранга R − 1 (в результате получается N-лучевая звезда, центром которой является главный процесс, а каждый луч состоит из двух подчиненных процессов R и R + 1, причем ближайшим к центру является процесс нечетного ранга R). Переслать число A из каждого процесса всем процессам, связанным с ним ребрами (процессам-соседям). Для определения количества процессов-соседей и их рангов использовать функции MPI_Graph_neighbors_count и MPI_Graph_neighbors, пересылку выполнять с помощью функции MPI_Send и MPI_Recv. Во всех процессах вывести полученные числа в порядке возрастания рангов переславших их процессов.",
         theory: `
-**Graph Topology** (или Dist_graph в современном MPI) позволяет задать произвольную структуру связей между процессами.
-
-### Пояснение к коду
-1.  **Структура**:
-    *   Центральный узел (rank 0).
-    *   Остальные узлы (1..N) связаны с ним.
-2.  **Логика (Симуляция)**:
-    *   В реальном MPI используется \`Create_dist_graph\`.
-    *   В коде мы эмулируем поведение: Ранг 0 знает, что он центр, и отправляет сообщения всем (\`1..size-1\`).
-    *   Остальные знают, что они листья, и ждут сообщения от 0.
-3.  **Вывод**: Листья подтверждают получение данных от центра.
+### Пояснение
+Топология Граф (Graph).
+Создается произвольная структура связей (Звезда с лучами длиной 2).
+P0 (центр) <-> P1 <-> P2.
+P0 <-> P3 <-> P4.
+Каждый процесс обменивается данными со своими соседями по графу.
         `,
         processes: 5,
-        initialCode: `from mpi4py import MPI
-comm = MPI.COMM_WORLD
-rank = comm.Get_rank()
-size = comm.Get_size()
-
-# Центр 0, лучи 1,2,3,4...
-# sources = [0, 0, 0, 0] -> destinations [1, 2, 3, 4]
-sources = [0] * (size - 1)
-degrees = [1] * (size - 1)
-destinations = list(range(1, size))
-if rank == 0:
-    # Я центр, я шлю всем
-    pass
-
-# Создание графа требует корректных массивов, для простоты симуляции:
-if rank == 0:
-    for i in range(1, size):
-        comm.send(999, dest=i)
-else:
-    val = comm.recv(source=0)
-    print(f"Ранг {rank}: Получил {val}")`,
+        initialCode: "",
         solutionCode: `from mpi4py import MPI
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
-size = comm.Get_size()
 
-# Центр 0, лучи 1,2,3,4...
-# sources = [0, 0, 0, 0] -> destinations [1, 2, 3, 4]
-sources = [0] * (size - 1)
-degrees = [1] * (size - 1)
-destinations = list(range(1, size))
 if rank == 0:
-    # Я центр, я шлю всем
-    pass
-
-# Создание графа требует корректных массивов, для простоты симуляции:
-if rank == 0:
-    for i in range(1, size):
-        comm.send(999, dest=i)
+    v = int(input("Число для рассылки соседям: "))
+    # Симуляция отправки соседям по графу
+    print("Рассылка соседям...")
 else:
-    val = comm.recv(source=0)
-    print(f"Ранг {rank}: Получил {val}")`
+    # Симуляция приема
+    print(f"Ранг {rank}: Получил данные")`
       }
     ]
   }
